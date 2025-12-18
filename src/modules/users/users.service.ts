@@ -12,7 +12,7 @@ export class UsersService {
         email: true,
         name: true,
         role: true,
-        isActive: true,
+        status: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -59,7 +59,7 @@ export class UsersService {
         email: true,
         name: true,
         role: true,
-        isActive: true,
+        status: true,
         updatedAt: true,
       },
     });

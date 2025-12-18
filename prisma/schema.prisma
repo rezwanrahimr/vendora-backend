@@ -1,6 +1,5 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -13,20 +12,30 @@ enum UserRole {
   USER
 }
 
+enum UserStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
 model User {
-  id            Int                @id @default(autoincrement())
-  email         String             @unique
-  password      String
-  name          String
-  phone         String?            @unique
-  location      String?
-  dateOfBirth   DateTime?
-  role          UserRole           @default(USER)
-  isActive      Boolean            @default(true)
-  vendorProfile VendorProfile?
-  notifications UserNotification[]
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  id                      Int                @id @default(autoincrement())
+  email                   String             @unique
+  password                String
+  name                    String?
+  phone                   String?            @unique
+  location                String?
+  dateOfBirth             DateTime?
+  role                    UserRole           @default(USER)
+  status                  UserStatus         @default(PENDING)
+  verificationCode        String?
+  verificationCodeExpiry  DateTime?
+  isEmailVerified         Boolean            @default(false)
+  vendorProfile           VendorProfile?
+  notifications           UserNotification[] 
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
 }
 
 model UserNotification {
@@ -36,21 +45,22 @@ model UserNotification {
   newOffer        Boolean @default(true)
   renewalReminder Boolean @default(true)
   promotional     Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model VendorProfile {
-  id            Int    @id @default(autoincrement())
-  userId        Int    @unique
-  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vendorId      String @default(uuid())
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendorId      String   @default(uuid())
   city          String
   streetAddress String
   zipCode       String
-  logoUrl String?
-  businessName String?
-  phone       String?
-  contactEmail String?
-  isVerified Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  logoUrl       String?
+  businessName  String?
+  contactEmail  String?
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
