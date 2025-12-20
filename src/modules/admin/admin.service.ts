@@ -23,4 +23,50 @@ export class AdminService {
             suspendedUsers: suspendedUsersCount.length,
         }
     }
+
+
+    async allUsers(search?: string, page: number = 1, limit: number = 10) {
+        const skip = (page - 1) * limit;
+
+        // Build the where condition
+        const where: any = {
+            role: 'USER',
+        };
+        if (search) {
+            where.OR = [
+                { email: { contains: search, mode: 'insensitive' } },
+                { name: { contains: search, mode: 'insensitive' } },
+            ];
+        }
+
+        // Get total count for pagination
+        const total = await this.prisma.user.count({ where });
+
+        // Get paginated users
+        const users = await this.prisma.user.findMany({
+            where,
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                role: true,
+                status: true,
+                createdAt: true,
+            },
+            skip,
+            take: limit,
+            orderBy: { createdAt: 'desc' },
+        });
+
+        return {
+            users,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit),
+            },
+        };
+    }
 }
