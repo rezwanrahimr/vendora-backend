@@ -5,9 +5,19 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { VendorsModule } from './modules/vendors/vendors.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { AppService } from './app.service';
+import { PrismaModule } from './prisma.module';
+import { OfferModule } from './offer/offer.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, VendorsModule, AdminModule],
+  imports: [
+    AuthModule,
+    UsersModule,
+    VendorsModule,
+    AdminModule,
+    PrismaModule,
+    OfferModule,
+  ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
   exports: [PrismaService],
