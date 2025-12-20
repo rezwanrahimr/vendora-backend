@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Query } from "@nestjs/common";
+import { Controller, Get, UseGuards, Query, Delete, Param } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiQuery } from "@nestjs/swagger";
 import { AdminService } from "./admin.service";
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
@@ -14,7 +14,7 @@ import { UserRole } from "src/common/enums/user-role.enum";
 export class AdminController {
     constructor(private readonly adminService: AdminService) { }
 
-    @Get('dashboard/users-status')
+    @Get('users/status')
     @ApiOperation({ summary: 'Get users status' })
     @ApiResponse({ status: 200, description: 'Users status retrieved successfully' })
     usersStatus() {
@@ -33,6 +33,14 @@ export class AdminController {
         @Query('limit') limit: string = '10',
     ) {
         return this.adminService.allUsers(search, parseInt(page), parseInt(limit));
+    }
+
+
+    @Delete('user/:id')
+    @ApiOperation({ summary: 'Delete a user by ID' })
+    @ApiResponse({ status: 200, description: 'User deleted successfully' })
+    deleteUser(@Param('id') id: string) {
+        return this.adminService.deleteUser(parseInt(id));
     }
 
 }
