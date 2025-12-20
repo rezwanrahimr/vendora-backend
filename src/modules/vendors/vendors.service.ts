@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
+import { UpdateVendorDto } from './dto/vendor.dto';
 
 @Injectable()
 export class VendorsService {
@@ -11,35 +12,32 @@ export class VendorsService {
       include: {
         vendorProfile: true,
       },
+      omit: {
+        password: true,
+      },
     });
   }
 
   async findOne(id: number) {
     const vendor = await this.prisma.user.findFirst({
-      where: { 
+      where: {
         id,
         role: 'VENDOR',
       },
       include: {
         vendorProfile: true,
       },
+      omit: { password: true },
     });
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
     }
 
-    const { password, ...vendorWithoutPassword } = vendor;
-    return vendorWithoutPassword;
+    return vendor;
   }
 
-  async updateVendorProfile(userId: number, data: {
-    businessName?: string;
-    businessAddress?: string;
-    phoneNumber?: string;
-    taxId?: string;
-    description?: string;
-  }) {
+  async updateVendorProfile(userId: number, data: UpdateVendorDto) {
     const vendor = await this.prisma.user.findFirst({
       where: { id: userId, role: 'VENDOR' },
       include: { vendorProfile: true },
