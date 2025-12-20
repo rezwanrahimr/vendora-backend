@@ -1,12 +1,23 @@
-import { Controller, Get, Param, Patch, Delete, Body, ParseIntPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Delete,
+  Body,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
+import { ApiJwtToken } from 'src/common/decorators/swagger-auth.decorator';
 
 @Controller('users')
+@ApiJwtToken()
 @UseGuards(JwtAuthGuard) // All routes require authentication
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
