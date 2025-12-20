@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma.service';
 import { RegisterDto, RegisterVendorDto, LoginDto, VerifyEmailDto } from './dto';
 import { EmailService } from './email.service';
+import { ResponseDto } from '../../common/dto/response.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -73,10 +74,11 @@ export class AuthService {
     // Send verification email
     await this.emailService.sendVerificationEmail(email, verificationCode, '');
 
-    return {
-      message: 'User registered successfully. Please check your email for verification code.',
-      user,
-    };
+    return new ResponseDto(
+      true,
+      'User registered successfully. Please check your email for verification code.',
+      { user }
+    );
   }
 
   async registerVendor(registerVendorDto: RegisterVendorDto) {
@@ -149,10 +151,11 @@ export class AuthService {
     // Send verification email
     await this.emailService.sendVerificationEmail(email, verificationCode, name || '');
 
-    return {
-      message: 'Vendor registered successfully. Please check your email for verification code. Your account will be reviewed by admin.',
-      user,
-    };
+    return new ResponseDto(
+      true,
+      'Vendor registered successfully. Please check your email for verification code. Your account will be reviewed by admin.',
+      { user }
+    );
   }
 
   async login(loginDto: LoginDto) {
@@ -194,11 +197,14 @@ export class AuthService {
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
 
-    return {
-      message: 'Login successful',
-      user: userWithoutPassword,
-      accessToken,
-    };
+    return new ResponseDto(
+      true,
+      'Login successful',
+      {
+        user: userWithoutPassword,
+        accessToken,
+      }
+    );
   }
 
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
@@ -250,10 +256,13 @@ export class AuthService {
     // Remove password from response
     const { password: _, ...userWithoutPassword } = updatedUser;
 
-    return {
-      message: 'Email verified successfully',
-      user: userWithoutPassword,
-      accessToken,
-    };
+    return new ResponseDto(
+      true,
+      'Email verified successfully',
+      {
+        user: userWithoutPassword,
+        accessToken,
+      }
+    );
   }
 }
