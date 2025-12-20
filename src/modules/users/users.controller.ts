@@ -22,6 +22,14 @@ import { ApiSecurity } from '@nestjs/swagger';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+
+  // @Get()
+  // @UseGuards(RolesGuard)
+  // @Roles(UserRole.ADMIN)
+  // totalUsers(){
+  //   return this.usersService.totalUsers();
+  // }
+
   @Get()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN) // Only admins can see all users
