@@ -13,7 +13,7 @@ import { PrismaService } from '../../prisma.service';
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-secret-key-change-this-in-production',
       signOptions: {
-        expiresIn: parseInt(process.env.JWT_EXPIRES_IN || '7d', 10) || '7d',
+        expiresIn: '7d',
       },
     }),
   ],
@@ -21,4 +21,4 @@ import { PrismaService } from '../../prisma.service';
   providers: [AuthService, EmailService, JwtStrategy, PrismaService],
   exports: [AuthService, JwtStrategy, PassportModule, JwtModule],
 })
-export class AuthModule {}
+export class AuthModule { }

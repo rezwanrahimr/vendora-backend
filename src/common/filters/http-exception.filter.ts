@@ -17,6 +17,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
 
+    console.log('HttpExceptionFilter - Exception:', exception);
+
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
@@ -24,6 +26,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exceptionResponse 
         : (exceptionResponse as any).message || message;
     }
+
+    console.log('HttpExceptionFilter - Status:', status, 'Message:', message);
 
     const errorResponse = new ResponseDto(false, message, null);
 

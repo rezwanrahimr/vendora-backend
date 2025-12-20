@@ -27,9 +27,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       },
     });
 
-    if (!user || !user.status || user.status !== 'ACTIVE') {
-      throw new UnauthorizedException('User not found or inactive');
+    if (!user) {
+      throw new UnauthorizedException('User not found');
     }
+
+    console.log('JWT Strategy - User found:', { id: user.id, email: user.email, role: user.role, status: user.status });
 
     // Remove password from user object
     const { password, ...userWithoutPassword } = user;
