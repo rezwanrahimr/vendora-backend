@@ -14,9 +14,10 @@ async function bootstrap() {
     .setTitle(packageJson.name)
     .setDescription(packageJson.description)
     .setVersion(packageJson.version)
+    // Define global security scheme for raw JWT
     .addSecurity('JWT', {
-      type: 'apiKey', // apiKey type for raw token
-      in: 'header', // send in header
+      type: 'apiKey', // raw token in header
+      in: 'header',
       name: 'Authorization', // header name
     })
     .build();
@@ -30,7 +31,7 @@ async function bootstrap() {
         JWT: {
           name: 'Authorization',
           schema: { type: 'apiKey', in: 'header', name: 'Authorization' },
-          value: 'your-test-token-here', 
+          value: 'your-test-token-here', // optional: prefill for testing
         },
       },
     },

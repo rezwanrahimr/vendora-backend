@@ -5,10 +5,11 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
-import { ApiJwtToken } from 'src/common/decorators/swagger-auth.decorator';
+import { ApiSecurity } from '@nestjs/swagger';
+
 
 @Controller('vendors')
-@ApiJwtToken()
+@ApiSecurity("JWT") // Apply JWT security scheme to all endpoints in this controller
 @UseGuards(JwtAuthGuard) // All routes require authentication
 export class VendorsController {
   constructor(private readonly vendorsService: VendorsService) {}
