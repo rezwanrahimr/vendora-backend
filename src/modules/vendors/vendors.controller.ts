@@ -6,6 +6,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { ApiSecurity } from '@nestjs/swagger';
+import { UpdateVendorDto } from './dto/vendor.dto';
 
 
 @Controller('vendors')
@@ -32,34 +33,25 @@ export class VendorsController {
     return this.vendorsService.findOne(id);
   }
 
+
+  // TODO: need to test
   @Patch('me/profile')
   @UseGuards(RolesGuard)
   @Roles(UserRole.VENDOR) // Only vendors can update their own profile
   updateMyProfile(
     @CurrentUser() user: any,
-    @Body() updateData: {
-      businessName?: string;
-      businessAddress?: string;
-      phoneNumber?: string;
-      taxId?: string;
-      description?: string;
-    },
+    @Body() updateData: UpdateVendorDto,
   ) {
     return this.vendorsService.updateVendorProfile(user.id, updateData);
   }
 
+  // TODO: need to test
   @Patch(':id/profile')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN) // Only admins can update any vendor profile
   updateProfile(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateData: {
-      businessName?: string;
-      businessAddress?: string;
-      phoneNumber?: string;
-      taxId?: string;
-      description?: string;
-    },
+    @Body() updateData: UpdateVendorDto,
   ) {
     return this.vendorsService.updateVendorProfile(id, updateData);
   }
