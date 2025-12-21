@@ -1,10 +1,12 @@
 import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma.service';
-import { RegisterDto, RegisterVendorDto, LoginDto, VerifyEmailDto } from './dto';
+import { RegisterDto, RegisterVendorDto, LoginDto, VerifyEmailDto, SendResetCodeDto, VerifyResetCodeDto, ConfirmResetPasswordDto, ChangePasswordDto } from './dto';
 import { EmailService } from './email.service';
+import { CacheService } from './cache.service';
 import { ResponseDto } from '../../common/dto/response.dto';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -12,6 +14,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private emailService: EmailService,
+    private cacheService: CacheService,
   ) { }
 
   async register(registerDto: RegisterDto) {
@@ -264,5 +267,191 @@ export class AuthService {
         accessToken,
       }
     );
+  }
+
+  // Step 1: Send verification code to email
+  async sendResetCode(sendResetCodeDto: SendResetCodeDto) {
+    const { email } = sendResetCodeDto;
+
+    // Find user
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // Return success even if user not found (security best practice)
+      return new ResponseDto(
+        true,
+        'If an account with that email exists, a verification code has been sent',
+        null
+      );
+    }
+
+    // Generate 6-digit verification code
+    const resetCode = this.emailService.generateVerificationCode();
+
+    // Store code in cache with 15 minute expiry
+    await this.cacheService.setResetCode(email, resetCode, 900);
+
+    // Send reset code email
+    await this.emailService.sendPasswordResetEmail(email, resetCode, user.name || '');
+
+    return new ResponseDto(
+      true,
+      'If an account with that email exists, a verification code has been sent',
+      null
+    );
+  }
+
+  // Step 2: Verify code and return short-lived token
+  async verifyResetCode(verifyResetCodeDto: VerifyResetCodeDto) {
+    const { email, code } = verifyResetCodeDto;
+
+    // Check if user exists
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid verification code or email');
+    }
+
+    // Get stored code from cache
+    const storedCode = await this.cacheService.getResetCode(email);
+
+    if (!storedCode) {
+      throw new BadRequestException('Verification code has expired or does not exist');
+    }
+
+    // Verify code matches
+    if (storedCode !== code) {
+      throw new BadRequestException('Invalid verification code or email');
+    }
+
+    // Generate short-lived reset token (random string)
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    // Store token in cache with 10 minute expiry
+    await this.cacheService.setResetToken(resetToken, email, 600);
+
+    // Delete the verification code
+    await this.cacheService.deleteResetCode(email);
+
+    return new ResponseDto(
+      true,
+      'Verification successful. Use the token to reset your password.',
+      { resetToken }
+    );
+  }
+
+  // Step 3: Use token to reset password
+  async confirmResetPassword(confirmResetPasswordDto: ConfirmResetPasswordDto) {
+    const { token, newPassword } = confirmResetPasswordDto;
+
+    // Get email from token
+    const email = await this.cacheService.getEmailFromToken(token);
+
+    if (!email) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    // Find user
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user password
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    // Delete the reset token
+    await this.cacheService.deleteResetToken(token);
+
+    return new ResponseDto(
+      true,
+      'Password reset successfully. You can now login with your new password.',
+      null
+    );
+  }
+
+  // Change password for authenticated user
+  async changePassword(userId: number, changePasswordDto: ChangePasswordDto) {
+    const { currentPassword, newPassword } = changePasswordDto;
+
+    // Find user
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    // Check if new password is same as current
+    if (currentPassword === newPassword) {
+      throw new BadRequestException('New password must be different from current password');
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    return new ResponseDto(
+      true,
+      'Password changed successfully',
+      null
+    );
+  }
+
+  // Logout - blacklist token
+  async logout(userId: number, token: string) {
+    // Extract token expiry time
+    const decoded = this.jwtService.decode(token) as { exp: number };
+    
+    if (decoded && decoded.exp) {
+      const ttl = decoded.exp - Math.floor(Date.now() / 1000);
+      
+      if (ttl > 0) {
+        // Store token in blacklist cache until it expires
+        await this.cacheService.setResetToken(`blacklist:${token}`, String(userId), ttl);
+      }
+    }
+
+    return new ResponseDto(
+      true,
+      'Logged out successfully',
+      null
+    );
+  }
+
+  // Helper method to check if token is blacklisted
+  async isTokenBlacklisted(token: string): Promise<boolean> {
+    const blacklisted = await this.cacheService.getEmailFromToken(`blacklist:${token}`);
+    return !!blacklisted;
   }
 }

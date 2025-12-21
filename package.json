@@ -23,6 +23,7 @@
     "prisma:migrate": "node node_modules/prisma/build/index.js migrate dev"
   },
   "dependencies": {
+    "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.0",
@@ -33,6 +34,9 @@
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.1.0",
     "bcrypt": "^5.1.1",
+    "cache-manager": "^7.2.7",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.3",
     "dotenv": "^17.2.3",
     "nodemailer": "^6.9.15",
     "passport": "^0.7.0",
