@@ -9,14 +9,10 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableShutdownHooks();
-
   // !TODO : need to check auth guard for swagger doc access
   const options = new DocumentBuilder()
     .setTitle(packageJson.name)
     .setDescription(packageJson.description)
-    .addServer(`http://localhost:${process.env.PORT ?? 3000}`) // set server URL to match global prefix
-    .addServer('https://yasminaarsic-server.onrender.com') // production server
     .setVersion(packageJson.version)
     // Define global security scheme for raw JWT
     .addSecurity('JWT', {

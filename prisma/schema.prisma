@@ -19,45 +19,32 @@ enum UserStatus {
   SUSPENDED
 }
 
-enum OfferType {
-  BOGO
-  DISCOUNT
-  SPECIAL
-}
-
-enum OfferStatus {
-  ACTIVE
-  INACTIVE
-  EXPIRED
-  DELETED
-}
-
 model User {
-  id                     Int                @id @default(autoincrement())
-  email                  String             @unique
-  password               String
-  name                   String?
-  phone                  String?            @unique
-  location               String?
-  dateOfBirth            DateTime?
-  role                   UserRole           @default(USER)
-  status                 UserStatus         @default(PENDING)
-  verificationCode       String?
-  verificationCodeExpiry DateTime?
-  isEmailVerified        Boolean            @default(false)
-  vendorProfile          VendorProfile?
-  notifications          UserNotification[]
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
+  id                      Int                @id @default(autoincrement())
+  email                   String             @unique
+  password                String
+  name                    String?
+  phone                   String?            @unique
+  location                String?
+  dateOfBirth             DateTime?
+  role                    UserRole           @default(USER)
+  status                  UserStatus         @default(PENDING)
+  verificationCode        String?
+  verificationCodeExpiry  DateTime?
+  isEmailVerified         Boolean            @default(false)
+  vendorProfile           VendorProfile?
+  notifications           UserNotification[] 
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
 }
 
 model UserNotification {
-  id              Int      @id @default(autoincrement())
+  id              Int     @id @default(autoincrement())
   userId          Int
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  newOffer        Boolean  @default(true)
-  renewalReminder Boolean  @default(true)
-  promotional     Boolean  @default(true)
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  newOffer        Boolean @default(true)
+  renewalReminder Boolean @default(true)
+  promotional     Boolean @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -76,25 +63,4 @@ model VendorProfile {
   isVerified    Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  offers        Offer[]
-}
-
-
-
-model Offer {
-  id             String        @id @default(uuid())
-  title          String
-  description    String
-  type           OfferType // current its only 3 types, but later it may have to  extract to separate model if needed
-  status         OfferStatus   @default(ACTIVE)
-  isReusable     Boolean       @default(false)
-  maxRedemptions Int?
-  redeemedCount  Int           @default(0)
-  validFrom      DateTime      @default(now())
-  validUntil     DateTime
-  metadata       Json?
-  vendorId       Int
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  vendor         VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 }
