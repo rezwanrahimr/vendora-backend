@@ -48,8 +48,6 @@ export class UsersService {
         id: true,
         email: true,
         name: true,
-        role: true,
-        status: true,
         updatedAt: true,
       },
     });
@@ -126,6 +124,36 @@ export class UsersService {
         imageUrl: true,
         updatedAt: true,
       },
+    });
+  }
+
+  async updateNotificationPreferences(userId: number, data: { newOffer?: boolean; renewalReminder?: boolean; promotional?: boolean }) {
+    const user = await this.prisma.user.findUnique({ 
+      where: { id: userId },
+      include: { notifications: true }
+    });
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if notification preferences exist
+    if (user.notifications.length === 0) {
+      // Create notification preferences if they don't exist
+      return this.prisma.userNotification.create({
+        data: {
+          userId,
+          newOffer: data.newOffer ?? true,
+          renewalReminder: data.renewalReminder ?? true,
+          promotional: data.promotional ?? true,
+        },
+      });
+    }
+
+    // Update existing notification preferences
+    return this.prisma.userNotification.update({
+      where: { id: user.notifications[0].id },
+      data,
     });
   }
 }

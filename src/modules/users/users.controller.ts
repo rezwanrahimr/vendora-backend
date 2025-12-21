@@ -26,6 +26,8 @@ import {
 } from '../../common/utils/file-upload.utils';
 import { FileSizeInterceptor } from '../../common/interceptors/file-size.interceptor';
 import { UploadImageDto, ImageUploadResponseDto } from './dto/upload-image.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateNotificationDto } from './dto/update-notification.dto';
 
 @Controller('users')
 @ApiTags('Users')
@@ -78,13 +80,24 @@ export class UsersController {
     return this.usersService.deleteUserImage(user.id);
   }
 
+  @Patch('notification-preferences')
+  @ApiOperation({ summary: 'Update notification preferences' })
+  @ApiResponse({ status: 200, description: 'Notification preferences updated successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async updateNotificationPreferences(
+    @CurrentUser() user: any,
+    @Body() updateData: UpdateNotificationDto,
+  ) {
+    return this.usersService.updateNotificationPreferences(user.id, updateData);
+  }
+
   @Patch(':id')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN) // Only admins can update users
-  @ApiOperation({ summary: 'Update user (Admin only)' })
+  @ApiOperation({ summary: 'Update user' })
+  @ApiResponse({ status: 200, description: 'User updated successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateData: { name?: string; isActive?: boolean },
+    @Body() updateData: UpdateUserDto,
   ) {
     return this.usersService.updateUser(id, updateData);
   }
