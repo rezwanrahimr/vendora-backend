@@ -17,7 +17,7 @@ export class VendorsService {
   async findOne(id: number) {
     const vendor = await this.prisma.user.findFirst({
       where: { 
-        id,
+        id: id.toString(),
         role: 'VENDOR',
       },
       include: {
@@ -41,7 +41,7 @@ export class VendorsService {
     description?: string;
   }) {
     const vendor = await this.prisma.user.findFirst({
-      where: { id: userId, role: 'VENDOR' },
+      where: { id: userId.toString(), role: 'VENDOR' },
       include: { vendorProfile: true },
     });
 
@@ -50,14 +50,14 @@ export class VendorsService {
     }
 
     return this.prisma.vendorProfile.update({
-      where: { userId },
+      where: { userId: userId.toString() },
       data,
     });
   }
 
   async verifyVendor(userId: number) {
     const vendor = await this.prisma.user.findFirst({
-      where: { id: userId, role: 'VENDOR' },
+      where: { id: userId.toString(), role: 'VENDOR' },
       include: { vendorProfile: true },
     });
 
@@ -66,7 +66,7 @@ export class VendorsService {
     }
 
     return this.prisma.vendorProfile.update({
-      where: { userId },
+      where: { userId: userId.toString() },
       data: { isVerified: true },
     });
   }

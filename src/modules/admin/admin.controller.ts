@@ -40,7 +40,7 @@ export class AdminController {
     @ApiOperation({ summary: 'Delete a user by ID' })
     @ApiResponse({ status: 200, description: 'User deleted successfully' })
     deleteUser(@Param('id') id: string) {
-        return this.adminService.deleteUser(parseInt(id));
+        return this.adminService.deleteUser(id);
     }
 
 }

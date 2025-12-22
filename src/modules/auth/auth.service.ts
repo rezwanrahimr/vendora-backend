@@ -391,7 +391,7 @@ export class AuthService {
 
     // Find user
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: userId.toString() },
     });
 
     if (!user) {
@@ -415,7 +415,7 @@ export class AuthService {
 
     // Update password
     await this.prisma.user.update({
-      where: { id: userId },
+      where: { id: userId.toString() },
       data: {
         password: hashedPassword,
       },

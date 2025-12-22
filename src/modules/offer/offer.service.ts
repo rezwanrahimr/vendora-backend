@@ -34,7 +34,7 @@ export class OfferService {
         title: payload.title,
         description: payload.description,
         type: payload.type,
-        vendorId: payload.vendorId,
+        vendorId: payload.vendorId.toString(),
         isReusable: payload.isReusable ?? false,
         maxRedemptions: payload.maxRedemptions ?? null,
         validFrom,
