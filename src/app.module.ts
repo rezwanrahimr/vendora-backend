@@ -11,9 +11,15 @@ import { OfferModule } from './modules/offer/offer.module';
 
 @Module({
   imports: [
-    AuthModule, UsersModule, VendorsModule, AdminModule],
+    AuthModule,
+    UsersModule,
+    VendorsModule,
+    AdminModule,
+    PrismaModule,
+    OfferModule,
+  ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
   exports: [PrismaService],
 })
-export class AppModule { }
+export class AppModule {}

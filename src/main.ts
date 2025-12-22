@@ -8,6 +8,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import * as express from 'express';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -43,6 +44,14 @@ async function bootstrap() {
       },
     },
   });
+
+  // app.useGlobalPipes(
+  //   new ValidationPipe({
+  //     transform: true, // Automatically convert payloads to DTO instances
+  //     whitelist: true, // Remove any extra properties not defined in DTOs
+  //     forbidNonWhitelisted: true, // Reject requests containing unknown properties
+  //   }),
+  // );
 
   // Apply response interceptor globally
   app.useGlobalInterceptors(new ResponseInterceptor());
