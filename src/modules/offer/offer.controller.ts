@@ -1,7 +1,24 @@
-import { Controller, Post, Body, Get, Param, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Param,
+  Patch,
+  Query,
+  Delete,
+} from '@nestjs/common';
 import { OfferService } from './offer.service';
-import { CreateOfferDto, UpdateOfferStatusDto } from './dto/offer.dto';
+import {
+  CreateOfferDto,
+  GetOffersQueryDto,
+  GetVendorOffersQueryDto,
+  RedeemOfferDto,
+  UpdateOfferStatusDto,
+} from './dto/offer.dto';
 import { ApiParam } from '@nestjs/swagger';
+
+// TODO : add auth guard
 
 @Controller('offer')
 export class OfferController {
@@ -23,8 +40,8 @@ export class OfferController {
   }
 
   @Get()
-  getAllOffers() {
-    return this.offerService.getAllOffers();
+  getAllOffers(@Query() query: GetOffersQueryDto) {
+    return this.offerService.getAllOffers(query);
   }
 
   @Patch('/:id/update-status')
@@ -35,5 +52,55 @@ export class OfferController {
   })
   updateStatus(@Param('id') id: string, @Body() dto: UpdateOfferStatusDto) {
     return this.offerService.updateStatus(id, dto.status);
+  }
+
+  // TODO: vendor id should be in the token, not param
+  @Get('/vendor/:vendorId')
+  @ApiParam({
+    name: 'vendorId',
+    type: String,
+    description: 'The ID of the vendor whose offers to retrieve',
+  })
+  getOffersForVendor(
+    @Param('vendorId') vendorId: string,
+    @Query() query: GetVendorOffersQueryDto,
+  ) {
+    return this.offerService.getOfferForVendor(vendorId, query);
+  }
+
+  @Patch('/:id')
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'The ID of the offer to update',
+  })
+  updateOffer(@Param('id') id: string, @Body() data: Partial<CreateOfferDto>) {
+    return this.offerService.updateOffer(id, data);
+  }
+
+  @Delete('/:id')
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'The ID of the offer to delete',
+  })
+  deleteOffer(@Param('id') id: string) {
+    return this.offerService.deleteOffer(id);
+  }
+
+  @Post('/redeem')
+  redeemOffer(@Body() payload: RedeemOfferDto) {
+    return this.offerService.redeemOffer(payload);
+  }
+
+  // TODO: vendor id should be in the token, not param
+  @Get('/quick-stats/:vendorId')
+  @ApiParam({
+    name: 'vendorId',
+    type: String,
+    description: 'The ID of the vendor whose quick stats to retrieve',
+  })
+  getQuickStatsForVendor(@Param('vendorId') vendorId: string) {
+    return this.offerService.getQuickStatsForVendor(vendorId);
   }
 }

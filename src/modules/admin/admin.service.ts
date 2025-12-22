@@ -120,7 +120,7 @@ export class AdminService {
             users.map(async (user) => {
                 const offersCount = await this.prisma.offer.count({
                     where: {
-                        vendor: {
+                        VendorProfile: {
                             userId: user.id,
                         },
                     },

@@ -8,12 +8,20 @@ import { VendorsModule } from './modules/vendors/vendors.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { PrismaModule } from './prisma.module';
 import { OfferModule } from './modules/offer/offer.module';
+import { CategoryModule } from './modules/category/category.module';
 
 @Module({
   imports: [
-    AuthModule, UsersModule, VendorsModule, AdminModule],
+    AuthModule,
+    UsersModule,
+    VendorsModule,
+    AdminModule,
+    PrismaModule,
+    OfferModule,
+    CategoryModule,
+  ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
   exports: [PrismaService],
 })
-export class AppModule { }
+export class AppModule {}

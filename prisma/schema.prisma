@@ -7,23 +7,25 @@ datasource db {
 }
 
 model User {
-  id                     String             @id @default(uuid())
-  email                  String             @unique
+  id                     String                 @id @default(uuid())
+  email                  String                 @unique
   name                   String?
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
   password               String
-  role                   UserRole           @default(USER)
+  role                   UserRole               @default(USER)
   dateOfBirth            DateTime?
   location               String?
   imageUrl               String?
-  phone                  String?            @unique
-  status                 UserStatus         @default(PENDING)
-  isEmailVerified        Boolean            @default(false)
+  phone                  String?                @unique
+  status                 UserStatus             @default(PENDING)
+  isEmailVerified        Boolean                @default(false)
   verificationCode       String?
   verificationCodeExpiry DateTime?
   notifications          UserNotification[]
   vendorProfile          VendorProfile?
+  offerRedemptions       OfferRedemption[]
+  offerRedemptionEvents  OfferRedemptionEvent[]
 }
 
 model UserNotification {
@@ -35,6 +37,16 @@ model UserNotification {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id             String          @id @default(uuid())
+  name           String
+  icon           String?
+  vendorProfiles VendorProfile[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model VendorProfile {
@@ -50,26 +62,60 @@ model VendorProfile {
   streetAddress String
   vendorId      String   @default(uuid())
   zipCode       String
+  categoryId    String
+  Category      Category @relation(fields: [categoryId], references: [id])
   offers        Offer[]
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Offer {
-  id             String        @id @default(uuid())
-  title          String
-  description    String
-  type           OfferType
-  status         OfferStatus   @default(ACTIVE)
-  isReusable     Boolean       @default(false)
-  maxRedemptions Int?
-  redeemedCount  Int           @default(0)
-  validFrom      DateTime      @default(now())
-  validUntil     DateTime
-  vendorId       String
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  metadata       Json?
-  vendor         VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  id                    String                 @id @default(uuid())
+  title                 String
+  description           String
+  type                  OfferType
+  status                OfferStatus            @default(ACTIVE)
+  isReusable            Boolean                @default(false)
+  maxRedemptions        Int?
+  redeemedCount         Int                    @default(0)
+  validFrom             DateTime               @default(now())
+  validUntil            DateTime
+  vendorId              String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  metadata              Json?
+  isDeleted             Boolean                @default(false)
+  cooldownPeriod        Int? // in days
+  VendorProfile         VendorProfile          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  offerRedemptions      OfferRedemption[]
+  offerRedemptionEvents OfferRedemptionEvent[]
+}
+
+model OfferRedemption {
+  id             String   @id @default(uuid())
+  userId         String
+  offerId        String
+  lastRedeemedAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  User  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Offer Offer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  @@unique([offerId, userId]) // each user can have only one redemption record per offer
+  @@index([offerId, userId])
+}
+
+model OfferRedemptionEvent {
+  id         String   @id @default(uuid())
+  offerId    String
+  userId     String
+  vendorId   String
+  redeemedAt DateTime @default(now())
+
+  Offer Offer @relation(fields: [offerId], references: [id])
+  User  User  @relation(fields: [userId], references: [id])
+
+  @@index([vendorId, redeemedAt])
+  @@index([offerId, redeemedAt])
 }
 
 enum UserRole {

@@ -8,15 +8,21 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import * as express from 'express';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  app.enableCors({
+    credentials: true,
+    origin: ['http://localhost:5173'],
+  });
 
   // Serve static files using express.static directly
   // __dirname is dist/src, so we need to go up two levels to reach project root
   app.use('/uploads', express.static(join(__dirname, '..', '..', 'uploads')));
 
-  // !TODO : need to check auth guard for swagger doc access
+  // TODO : need to check auth guard for swagger doc access
   const options = new DocumentBuilder()
     .setTitle(packageJson.name)
     .setDescription(packageJson.description)
@@ -43,6 +49,14 @@ async function bootstrap() {
       },
     },
   });
+
+  // app.useGlobalPipes(
+  //   new ValidationPipe({
+  //     transform: true, // Automatically convert payloads to DTO instances
+  //     whitelist: true, // Remove any extra properties not defined in DTOs
+  //     forbidNonWhitelisted: true, // Reject requests containing unknown properties
+  //   }),
+  // );
 
   // Apply response interceptor globally
   app.useGlobalInterceptors(new ResponseInterceptor());
