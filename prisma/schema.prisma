@@ -55,7 +55,7 @@ model VendorProfile {
 }
 
 model Offer {
-  id             String        @id
+  id             String        @id @default(uuid())
   title          String
   description    String
   type           OfferType
@@ -67,7 +67,7 @@ model Offer {
   validUntil     DateTime
   vendorId       Int
   createdAt      DateTime      @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime      @updatedAt
   metadata       Json?
   VendorProfile  VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 }
