@@ -18,7 +18,6 @@ import {
 } from './dto/offer.dto';
 import { ApiParam } from '@nestjs/swagger';
 
-
 // TODO : add auth guard
 
 @Controller('offer')
@@ -55,6 +54,7 @@ export class OfferController {
     return this.offerService.updateStatus(id, dto.status);
   }
 
+  // TODO: vendor id should be in the token, not param
   @Get('/vendor/:vendorId')
   @ApiParam({
     name: 'vendorId',
@@ -91,5 +91,16 @@ export class OfferController {
   @Post('/redeem')
   redeemOffer(@Body() payload: RedeemOfferDto) {
     return this.offerService.redeemOffer(payload);
+  }
+
+  // TODO: vendor id should be in the token, not param
+  @Get('/quick-stats/:vendorId')
+  @ApiParam({
+    name: 'vendorId',
+    type: String,
+    description: 'The ID of the vendor whose quick stats to retrieve',
+  })
+  getQuickStatsForVendor(@Param('vendorId') vendorId: string) {
+    return this.offerService.getQuickStatsForVendor(vendorId);
   }
 }

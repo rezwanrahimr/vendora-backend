@@ -10,8 +10,7 @@ import {
   GetVendorOffersQueryDto,
   RedeemOfferDto,
 } from './dto/offer.dto';
-import { Offer, OfferStatus, Prisma } from '@prisma/client';
-
+import { OfferStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class OfferService {
@@ -225,7 +224,6 @@ export class OfferService {
     });
   }
 
-
   // TODO: need to test after auth guard
   async redeemOffer(payload: RedeemOfferDto) {
     const { offerId, customerEmail } = payload;
@@ -233,23 +231,30 @@ export class OfferService {
     const customer = await this.prisma.user.findUnique({
       where: { email: customerEmail },
     });
-    if (!customer)
+
+    if (!customer) {
       throw new NotFoundException(
         `Customer with email ${customerEmail} not found`,
       );
+    }
 
-    // Transaction ensures atomic updates
-    return await this.prisma.$transaction(async (prisma) => {
-      // Fetch offer inside transaction to lock it
-      const offer = await prisma.offer.findUnique({ where: { id: offerId } });
+    return this.prisma.$transaction(async (tx) => {
+      // 1️⃣ Fetch offer
+      const offer = await tx.offer.findUnique({
+        where: { id: offerId },
+      });
 
-      if (!offer)
+      if (!offer) {
         throw new NotFoundException(`Offer with ID ${offerId} not found`);
+      }
 
-      if (offer.status !== 'ACTIVE')
-        throw new BadRequestException(`Offer is not active`);
+      if (offer.status !== 'ACTIVE') {
+        throw new BadRequestException('Offer is not active');
+      }
 
-      if (offer.isDeleted) throw new BadRequestException(`Offer is deleted`);
+      if (offer.isDeleted) {
+        throw new BadRequestException('Offer is deleted');
+      }
 
       if (
         offer.maxRedemptions !== null &&
@@ -260,18 +265,21 @@ export class OfferService {
         );
       }
 
+      // 2️⃣ Cooldown check
       if (offer.isReusable && offer.cooldownPeriod) {
-        const lastRedemption = await prisma.offerRedemption.findUnique({
+        const lastRedemption = await tx.offerRedemption.findUnique({
           where: { offerId_userId: { offerId, userId: customer.id } },
         });
 
         if (lastRedemption) {
           const nextAvailable = new Date(lastRedemption.lastRedeemedAt);
           nextAvailable.setDate(nextAvailable.getDate() + offer.cooldownPeriod);
+
           if (nextAvailable > new Date()) {
             const remainingDays = Math.ceil(
               (nextAvailable.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
             );
+
             throw new BadRequestException(
               `Offer is on cooldown. Try again in ${remainingDays} day(s)`,
             );
@@ -279,15 +287,24 @@ export class OfferService {
         }
       }
 
-      // Upsert redemption record
-      const redemption = await prisma.offerRedemption.upsert({
+      // 3️⃣ Upsert redemption state (cooldown tracking)
+      const redemption = await tx.offerRedemption.upsert({
         where: { offerId_userId: { offerId, userId: customer.id } },
         update: { lastRedeemedAt: new Date() },
         create: { offerId, userId: customer.id },
       });
 
-      // Increment redeemedCount
-      const updatedOffer = await prisma.offer.update({
+      // 4️⃣ Insert analytics event (CRITICAL)
+      await tx.offerRedemptionEvent.create({
+        data: {
+          offerId,
+          userId: customer.id,
+          vendorId: offer.vendorId,
+        },
+      });
+
+      // 5️⃣ Increment counter
+      const updatedOffer = await tx.offer.update({
         where: { id: offerId },
         data: { redeemedCount: { increment: 1 } },
         select: {
@@ -304,5 +321,35 @@ export class OfferService {
 
       return { redemption, offer: updatedOffer };
     });
+  }
+
+  async getQuickStatsForVendor(vendorId: string) {
+    const [totalActive, reusableOffers, oneTimeOffers] = await Promise.all([
+      this.prisma.offer.count({
+        where: { vendorId, status: 'ACTIVE', isDeleted: false },
+      }),
+      this.prisma.offer.count({
+        where: {
+          vendorId,
+          status: 'ACTIVE',
+          isReusable: true,
+          isDeleted: false,
+        },
+      }),
+      this.prisma.offer.count({
+        where: {
+          vendorId,
+          status: 'ACTIVE',
+          isReusable: false,
+          isDeleted: false,
+        },
+      }),
+    ]);
+
+    return {
+      totalActive,
+      reusableOffers,
+      oneTimeOffers,
+    };
   }
 }
