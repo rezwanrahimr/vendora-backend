@@ -70,7 +70,7 @@ export class AdminService {
         };
     }
 
-    async deleteUser(id: number) {
+    async deleteUser(id: string) {
         await this.prisma.user.delete({
             where: { id }
         });
