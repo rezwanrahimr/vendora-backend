@@ -51,7 +51,7 @@ model VendorProfile {
   streetAddress String
   vendorId      String   @default(uuid())
   zipCode       String
-  Offer         Offer[]
+  offers        Offer[]
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
