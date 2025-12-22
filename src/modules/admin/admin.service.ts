@@ -1,10 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma.service";
+import { EmailService } from "../auth/email.service";
 
 @Injectable()
 export class AdminService {
     constructor(
-        private prisma: PrismaService
+        private prisma: PrismaService,
+        private readonly emailService: EmailService
     ) { }
 
     async usersStatus() {
@@ -78,7 +80,7 @@ export class AdminService {
     }
 
 
-      async allVendors(search?: string, page: number = 1, limit: number = 10) {
+    async allVendors(search?: string, page: number = 1, limit: number = 10) {
         const skip = (page - 1) * limit;
 
         // Build the where condition
@@ -139,5 +141,33 @@ export class AdminService {
                 pages: Math.ceil(total / limit),
             },
         };
+    }
+
+
+    async approvedVendor(id: string) {
+
+        const user = await this.prisma.user.findUnique({ where: { id } });
+        if (!user || user.role !== 'VENDOR') {
+            throw new Error('Vendor not found');
+        }
+
+        await this.prisma.user.update({
+            where: { id },
+            data: { status: 'ACTIVE' }
+        });
+
+        await this.emailService.sendEmail({
+            subject: 'Vendor Account Approved',
+            to: user.email,
+            html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Congratulations!</h2>
+          <p>Your vendor account has been approved. You can now start using our platform to offer your products and services.</p>
+          <p>Thank you for joining us!</p>
+        </div>
+      `
+        })
+
+        return { message: 'Vendor approved successfully' }
     }
 }

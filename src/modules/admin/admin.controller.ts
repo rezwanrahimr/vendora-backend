@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Query, Delete, Param } from "@nestjs/common";
+import { Controller, Get, UseGuards, Query, Delete, Param, Patch } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiQuery } from "@nestjs/swagger";
 import { AdminService } from "./admin.service";
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
@@ -57,6 +57,13 @@ export class AdminController {
         @Query('limit') limit: string = '10',
     ) {
         return this.adminService.allVendors(search, parseInt(page), parseInt(limit));
+    }
+
+    @Patch('vendor/:id/approve')
+    @ApiOperation({ summary: 'Approve a vendor by ID' })
+    @ApiResponse({ status: 200, description: 'Vendor approved successfully' })
+    approvedVendor(@Param('id') id: string) {
+        return this.adminService.approvedVendor(id);
     }
 
 }
