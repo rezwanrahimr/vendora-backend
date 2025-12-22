@@ -1,10 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma.service";
+import { EmailService } from "../auth/email.service";
+import { VendorUpdateDto } from "./dto/update-vendor.dto";
 
 @Injectable()
 export class AdminService {
     constructor(
-        private prisma: PrismaService
+        private prisma: PrismaService,
+        private readonly emailService: EmailService
     ) { }
 
     async usersStatus() {
@@ -78,7 +81,7 @@ export class AdminService {
     }
 
 
-      async allVendors(search?: string, page: number = 1, limit: number = 10) {
+    async allVendors(search?: string, page: number = 1, limit: number = 10) {
         const skip = (page - 1) * limit;
 
         // Build the where condition
@@ -139,5 +142,76 @@ export class AdminService {
                 pages: Math.ceil(total / limit),
             },
         };
+    }
+
+
+    async approvedVendor(id: string) {
+
+        const user = await this.prisma.user.findUnique({ where: { id } });
+        if (!user || user.role !== 'VENDOR') {
+            throw new Error('Vendor not found');
+        }
+
+        await this.prisma.user.update({
+            where: { id },
+            data: { status: 'ACTIVE' }
+        });
+
+        await this.emailService.sendEmail({
+            subject: 'Vendor Account Approved',
+            to: user.email,
+            html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Congratulations!</h2>
+          <p>Your vendor account has been approved. You can now start using our platform to offer your products and services.</p>
+          <p>Thank you for joining us!</p>
+        </div>
+      `
+        })
+
+        return { message: 'Vendor approved successfully' }
+    }
+
+    async updateVendor(id: string, updateData: VendorUpdateDto) {
+        // Check if user exists and is a vendor
+        const user = await this.prisma.user.findUnique({
+            where: { id },
+            include: { vendorProfile: true }
+        });
+
+        if (!user || user.role !== 'VENDOR') {
+            throw new Error('Vendor not found');
+        }
+
+        if (!user.vendorProfile) {
+            throw new Error('Vendor profile not found');
+        }
+
+        // Update vendor profile
+        const vendorProfile = await this.prisma.vendorProfile.update({
+            where: { userId: id },
+            data: updateData,
+        });
+
+        return { message: 'Vendor updated successfully', vendorProfile };
+    }
+
+    async deleteVendor(id: string) {
+        // Check if user exists and is a vendor
+        const user = await this.prisma.user.findUnique({
+            where: { id },
+            select: { role: true }
+        });
+
+        if (!user || user.role !== 'VENDOR') {
+            throw new Error('Vendor not found');
+        }
+
+        // Delete user (cascade will delete vendor profile and offers)
+        await this.prisma.user.delete({
+            where: { id }
+        });
+
+        return { message: 'Vendor deleted successfully' };
     }
 }

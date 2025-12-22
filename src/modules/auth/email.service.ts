@@ -17,6 +17,38 @@ export class EmailService {
     });
   }
 
+  /**
+   * Generic method to send any email
+   * @param to - Recipient email address
+   * @param subject - Email subject
+   * @param html - HTML content of the email
+   * @param text - Plain text content (optional)
+   * @param from - Sender email (optional, defaults to EMAIL_FROM env)
+   */
+  async sendEmail(options: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+    from?: string;
+  }) {
+    const mailOptions = {
+      from: options.from || process.env.EMAIL_FROM || 'noreply@example.com',
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending email:', error);
+      return { success: false, error };
+    }
+  }
+
   async sendVerificationEmail(email: string, code: string, name: string) {
     const mailOptions = {
       from: process.env.EMAIL_FROM || 'noreply@example.com',
