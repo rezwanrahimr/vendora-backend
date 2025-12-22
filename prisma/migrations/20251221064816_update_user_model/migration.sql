@@ -1,12 +1,15 @@
 -- CreateEnum
-CREATE TYPE "OfferType" AS ENUM ('BOGO', 'DISCOUNT', 'SPECIAL');
+CREATE TYPE "OfferStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'EXPIRED', 'DELETED');
 
 -- CreateEnum
-CREATE TYPE "OfferStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'EXPIRED', 'DELETED');
+CREATE TYPE "OfferType" AS ENUM ('BOGO', 'DISCOUNT', 'SPECIAL');
+
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "imageUrl" TEXT;
 
 -- CreateTable
 CREATE TABLE "Offer" (
-    "id" SERIAL NOT NULL,
+    "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "type" "OfferType" NOT NULL,
@@ -17,9 +20,9 @@ CREATE TABLE "Offer" (
     "validFrom" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "validUntil" TIMESTAMP(3) NOT NULL,
     "vendorId" INTEGER NOT NULL,
-    "metadata" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "metadata" JSONB,
 
     CONSTRAINT "Offer_pkey" PRIMARY KEY ("id")
 );

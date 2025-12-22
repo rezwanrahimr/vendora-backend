@@ -6,6 +6,72 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id                     Int                @id @default(autoincrement())
+  email                  String             @unique
+  name                   String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  password               String
+  role                   UserRole           @default(USER)
+  dateOfBirth            DateTime?
+  location               String?
+  imageUrl               String?
+  phone                  String?            @unique
+  status                 UserStatus         @default(PENDING)
+  isEmailVerified        Boolean            @default(false)
+  verificationCode       String?
+  verificationCodeExpiry DateTime?
+  notifications          UserNotification[]
+  vendorProfile          VendorProfile?
+}
+
+model UserNotification {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  newOffer        Boolean  @default(true)
+  renewalReminder Boolean  @default(true)
+  promotional     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VendorProfile {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
+  businessName  String?
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  city          String
+  contactEmail  String?
+  logoUrl       String?
+  streetAddress String
+  vendorId      String   @default(uuid())
+  zipCode       String
+  Offer         Offer[]
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Offer {
+  id             String        @id
+  title          String
+  description    String
+  type           OfferType
+  status         OfferStatus   @default(ACTIVE)
+  isReusable     Boolean       @default(false)
+  maxRedemptions Int?
+  redeemedCount  Int           @default(0)
+  validFrom      DateTime      @default(now())
+  validUntil     DateTime
+  vendorId       Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime
+  metadata       Json?
+  VendorProfile  VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+}
+
 enum UserRole {
   ADMIN
   VENDOR
@@ -19,12 +85,6 @@ enum UserStatus {
   SUSPENDED
 }
 
-enum OfferType {
-  BOGO
-  DISCOUNT
-  SPECIAL
-}
-
 enum OfferStatus {
   ACTIVE
   INACTIVE
@@ -32,69 +92,8 @@ enum OfferStatus {
   DELETED
 }
 
-model User {
-  id                     Int                @id @default(autoincrement())
-  email                  String             @unique
-  password               String
-  name                   String?
-  phone                  String?            @unique
-  location               String?
-  dateOfBirth            DateTime?
-  role                   UserRole           @default(USER)
-  status                 UserStatus         @default(PENDING)
-  verificationCode       String?
-  verificationCodeExpiry DateTime?
-  isEmailVerified        Boolean            @default(false)
-  vendorProfile          VendorProfile?
-  notifications          UserNotification[]
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
-}
-
-model UserNotification {
-  id              Int      @id @default(autoincrement())
-  userId          Int
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  newOffer        Boolean  @default(true)
-  renewalReminder Boolean  @default(true)
-  promotional     Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-}
-
-model VendorProfile {
-  id            Int      @id @default(autoincrement())
-  userId        Int      @unique
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vendorId      String   @default(uuid())
-  city          String
-  streetAddress String
-  zipCode       String
-  logoUrl       String?
-  businessName  String?
-  contactEmail  String?
-  isVerified    Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  offers        Offer[]
-}
-
-
-
-model Offer {
-  id             String        @id @default(uuid())
-  title          String
-  description    String
-  type           OfferType // current its only 3 types, but later it may have to  extract to separate model if needed
-  status         OfferStatus   @default(ACTIVE)
-  isReusable     Boolean       @default(false)
-  maxRedemptions Int?
-  redeemedCount  Int           @default(0)
-  validFrom      DateTime      @default(now())
-  validUntil     DateTime
-  metadata       Json?
-  vendorId       Int
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  vendor         VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+enum OfferType {
+  BOGO
+  DISCOUNT
+  SPECIAL
 }
