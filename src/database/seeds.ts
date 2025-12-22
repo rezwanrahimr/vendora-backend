@@ -10,6 +10,22 @@ async function runSeeds() {
 
   console.log('seeds');
   try {
+    // Create default category if not exists
+    let defaultCategory = await prisma.category.findFirst({
+      where: { name: 'General' },
+    });
+
+    if (!defaultCategory) {
+      defaultCategory = await prisma.category.create({
+        data: {
+          id: '00000000-0000-0000-0000-000000000000',
+          name: 'General',
+          icon: '🏪',
+        },
+      });
+      console.log('Default category created.');
+    }
+
     // Check if admin already exists
     const existingAdmin = await prisma.user.findUnique({
       where: { email: 'admin@gmail.com' },

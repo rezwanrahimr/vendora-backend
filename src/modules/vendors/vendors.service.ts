@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
-import { Parser } from 'json2csv';
 
 @Injectable()
 export class VendorsService {
@@ -300,9 +299,20 @@ export class VendorsService {
       }),
     );
 
-    // Generate CSV
-    const parser = new Parser({ header: false });
-    const csv = parser.parse(rows);
+    // Generate CSV manually
+    const headers = Object.keys(rows[0] || {});
+    const csvRows = [
+      headers.join(','),
+      ...rows.map(row => headers.map(header => {
+        const value = row[header];
+        // Escape values that contain commas or quotes
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      }).join(','))
+    ];
+    const csv = csvRows.join('\n');
 
     return csv;
   }

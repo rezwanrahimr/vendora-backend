@@ -122,6 +122,7 @@ export class AuthService {
               streetAddress,
               city,
               zipCode,
+              categoryId: '00000000-0000-0000-0000-000000000000', // Default category, should be updated later
             },
           },
         },
