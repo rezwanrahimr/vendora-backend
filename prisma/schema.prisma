@@ -7,7 +7,7 @@ datasource db {
 }
 
 model User {
-  id                     Int                @id @default(autoincrement())
+  id                     String             @id @default(uuid())
   email                  String             @unique
   name                   String?
   createdAt              DateTime           @default(now())
@@ -27,8 +27,8 @@ model User {
 }
 
 model UserNotification {
-  id              Int      @id @default(autoincrement())
-  userId          Int
+  id              String   @id @default(uuid())
+  userId          String
   newOffer        Boolean  @default(true)
   renewalReminder Boolean  @default(true)
   promotional     Boolean  @default(true)
@@ -38,8 +38,8 @@ model UserNotification {
 }
 
 model VendorProfile {
-  id            Int      @id @default(autoincrement())
-  userId        Int      @unique
+  id            String   @id @default(uuid())
+  userId        String   @unique
   businessName  String?
   isVerified    Boolean  @default(false)
   createdAt     DateTime @default(now())
@@ -65,7 +65,7 @@ model Offer {
   redeemedCount  Int           @default(0)
   validFrom      DateTime      @default(now())
   validUntil     DateTime
-  vendorId       Int
+  vendorId       String
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   metadata       Json?
