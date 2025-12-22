@@ -47,7 +47,7 @@ export class OfferService {
     return await this.prisma.offer.findUniqueOrThrow({
       where: { id: offerId },
       include: {
-        vendor: {
+        VendorProfile: {
           include: {
             user: {
               select: { id: true, email: true, name: true },
