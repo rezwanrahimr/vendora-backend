@@ -8,7 +8,7 @@ import { join } from 'path';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
@@ -34,7 +34,7 @@ export class UsersService {
     });
   }
 
-  async updateUser(id: number, data: { name?: string; isActive?: boolean }) {
+  async updateUser(id: string, data: { name?: string; isActive?: boolean }) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     
     if (!user) {
@@ -53,7 +53,7 @@ export class UsersService {
     });
   }
 
-  async uploadUserImage(userId: number, filename: string) {
+  async uploadUserImage(userId: string, filename: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     
     if (!user) {
@@ -92,7 +92,7 @@ export class UsersService {
     };
   }
 
-  async deleteUserImage(userId: number) {
+  async deleteUserImage(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     
     if (!user) {
@@ -127,7 +127,7 @@ export class UsersService {
     });
   }
 
-  async updateNotificationPreferences(userId: number, data: { newOffer?: boolean; renewalReminder?: boolean; promotional?: boolean }) {
+  async updateNotificationPreferences(userId: string, data: { newOffer?: boolean; renewalReminder?: boolean; promotional?: boolean }) {
     const user = await this.prisma.user.findUnique({ 
       where: { id: userId },
       include: { notifications: true }

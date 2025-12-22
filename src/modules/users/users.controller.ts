@@ -19,10 +19,17 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
-import { ApiSecurity, ApiTags, ApiOperation, ApiConsumes, ApiBody, ApiResponse } from '@nestjs/swagger';
-import { 
-  userImageStorage, 
-  imageFileFilter 
+import {
+  ApiSecurity,
+  ApiTags,
+  ApiOperation,
+  ApiConsumes,
+  ApiBody,
+  ApiResponse,
+} from '@nestjs/swagger';
+import {
+  userImageStorage,
+  imageFileFilter,
 } from '../../common/utils/file-upload.utils';
 import { FileSizeInterceptor } from '../../common/interceptors/file-size.interceptor';
 import { UploadImageDto, ImageUploadResponseDto } from './dto/upload-image.dto';
@@ -31,11 +38,10 @@ import { UpdateNotificationDto } from './dto/update-notification.dto';
 
 @Controller('users')
 @ApiTags('Users')
-@ApiSecurity("JWT") // Apply JWT security scheme to all endpoints in this controller
+@ApiSecurity('JWT') // Apply JWT security scheme to all endpoints in this controller
 @UseGuards(JwtAuthGuard) // All routes require authentication
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
-
+  constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
   @ApiOperation({ summary: 'Get current user profile' })
@@ -48,10 +54,10 @@ export class UsersController {
   @ApiOperation({ summary: 'Upload user profile image' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: UploadImageDto })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Image uploaded successfully',
-    type: ImageUploadResponseDto 
+    type: ImageUploadResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid file type or size' })
   @UseInterceptors(
@@ -82,7 +88,10 @@ export class UsersController {
 
   @Patch('notification-preferences')
   @ApiOperation({ summary: 'Update notification preferences' })
-  @ApiResponse({ status: 200, description: 'Notification preferences updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification preferences updated successfully',
+  })
   @ApiResponse({ status: 404, description: 'User not found' })
   async updateNotificationPreferences(
     @CurrentUser() user: any,
@@ -95,11 +104,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Update user' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateData: UpdateUserDto,
-  ) {
+  update(@Param('id') id: string, @Body() updateData: UpdateUserDto) {
     return this.usersService.updateUser(id, updateData);
   }
-
 }
