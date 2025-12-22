@@ -1,10 +1,11 @@
-import { Controller, Get, UseGuards, Query, Delete, Param, Patch } from "@nestjs/common";
+import { Controller, Get, UseGuards, Query, Delete, Param, Patch, Body } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiQuery } from "@nestjs/swagger";
 import { AdminService } from "./admin.service";
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
 import { RolesGuard } from "src/common/guards/roles.guard";
 import { Roles } from "src/common/decorators/roles.decorator";
 import { UserRole } from "src/common/enums/user-role.enum";
+import { VendorUpdateDto } from "./dto/update-vendor.dto";
 
 @ApiTags('Admin')
 @Controller('admin')
@@ -65,5 +66,21 @@ export class AdminController {
     approvedVendor(@Param('id') id: string) {
         return this.adminService.approvedVendor(id);
     }
+
+
+    @Patch('vendor/:id')
+    @ApiOperation({ summary: 'Update vendor status by ID' })
+    @ApiResponse({ status: 200, description: 'vendor update successfully' })
+    updateVendor(@Param('id') id: string, @Body() updateData: VendorUpdateDto) {
+        return this.adminService.updateVendor(id, updateData);
+    }
+
+    @Delete('vendor/:id')
+    @ApiOperation({ summary: 'Delete a vendor by ID' })
+    @ApiResponse({ status: 200, description: 'Vendor deleted successfully' })
+    deleteVendor(@Param('id') id: string) {
+        return this.adminService.deleteVendor(id);
+    }
+
 
 }

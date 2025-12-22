@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma.service";
 import { EmailService } from "../auth/email.service";
+import { VendorUpdateDto } from "./dto/update-vendor.dto";
 
 @Injectable()
 export class AdminService {
@@ -169,5 +170,48 @@ export class AdminService {
         })
 
         return { message: 'Vendor approved successfully' }
+    }
+
+    async updateVendor(id: string, updateData: VendorUpdateDto) {
+        // Check if user exists and is a vendor
+        const user = await this.prisma.user.findUnique({
+            where: { id },
+            include: { vendorProfile: true }
+        });
+
+        if (!user || user.role !== 'VENDOR') {
+            throw new Error('Vendor not found');
+        }
+
+        if (!user.vendorProfile) {
+            throw new Error('Vendor profile not found');
+        }
+
+        // Update vendor profile
+        const vendorProfile = await this.prisma.vendorProfile.update({
+            where: { userId: id },
+            data: updateData,
+        });
+
+        return { message: 'Vendor updated successfully', vendorProfile };
+    }
+
+    async deleteVendor(id: string) {
+        // Check if user exists and is a vendor
+        const user = await this.prisma.user.findUnique({
+            where: { id },
+            select: { role: true }
+        });
+
+        if (!user || user.role !== 'VENDOR') {
+            throw new Error('Vendor not found');
+        }
+
+        // Delete user (cascade will delete vendor profile and offers)
+        await this.prisma.user.delete({
+            where: { id }
+        });
+
+        return { message: 'Vendor deleted successfully' };
     }
 }
