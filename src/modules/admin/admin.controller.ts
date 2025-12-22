@@ -43,4 +43,20 @@ export class AdminController {
         return this.adminService.deleteUser(id);
     }
 
+
+
+    @Get('vendors')
+    @ApiOperation({ summary: 'Search vendors' })
+    @ApiQuery({ name: 'search', required: false, description: 'Search by email or name' })
+    @ApiQuery({ name: 'page', required: false, description: 'Page number', example: 1 })
+    @ApiQuery({ name: 'limit', required: false, description: 'Items per page', example: 10 })
+    @ApiResponse({ status: 200, description: 'Vendors retrieved successfully' })
+    allVendors(
+        @Query('search') search?: string,
+        @Query('page') page: string = '1',
+        @Query('limit') limit: string = '10',
+    ) {
+        return this.adminService.allVendors(search, parseInt(page), parseInt(limit));
+    }
+
 }
