@@ -105,7 +105,6 @@ export class AdminService {
                 phone: true,
                 role: true,
                 status: true,
-                vendorProfile: true,
                 createdAt: true,
             },
             skip,
@@ -113,8 +112,26 @@ export class AdminService {
             orderBy: { createdAt: 'desc' },
         });
 
+        // Transform data to include offers count
+        const transformedUsers = await Promise.all(
+            users.map(async (user) => {
+                const offersCount = await this.prisma.offer.count({
+                    where: {
+                        vendor: {
+                            userId: user.id,
+                        },
+                    },
+                });
+
+                return {
+                    ...user,
+                    offersCount,
+                };
+            })
+        );
+
         return {
-            users,
+            users: transformedUsers,
             pagination: {
                 total,
                 page,

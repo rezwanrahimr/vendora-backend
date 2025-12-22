@@ -50,7 +50,7 @@ model VendorProfile {
   streetAddress String
   vendorId      String   @default(uuid())
   zipCode       String
-  Offer         Offer[]
+  offers        Offer[]
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -69,7 +69,7 @@ model Offer {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   metadata       Json?
-  VendorProfile  VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendor         VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 }
 
 enum UserRole {
