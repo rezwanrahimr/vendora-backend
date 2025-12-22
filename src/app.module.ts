@@ -6,7 +6,6 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { VendorsModule } from './modules/vendors/vendors.module';
 import { AdminModule } from './modules/admin/admin.module';
-import { AppService } from './app.service';
 import { PrismaModule } from './prisma.module';
 import { OfferModule } from './modules/offer/offer.module';
 
