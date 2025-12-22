@@ -8,6 +8,7 @@ import { VendorsModule } from './modules/vendors/vendors.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { PrismaModule } from './prisma.module';
 import { OfferModule } from './modules/offer/offer.module';
+import { CategoryModule } from './modules/category/category.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { OfferModule } from './modules/offer/offer.module';
     AdminModule,
     PrismaModule,
     OfferModule,
+    CategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

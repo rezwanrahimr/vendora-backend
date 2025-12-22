@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
+import { Parser } from 'json2csv';
 
 @Injectable()
 export class VendorsService {
@@ -147,6 +148,7 @@ export class VendorsService {
     };
   }
 
+  // TODO: export to csv,
   async getOffersUsageHistory(userId: string) {
     // 1️⃣ Redemptions by Offer (bar chart)
     const redemptionsByOfferRaw =
@@ -242,5 +244,66 @@ export class VendorsService {
       },
       offerPerformanceAnalysis,
     };
+  }
+
+  async exportToCsv(userId: string) {
+    const data = await this.getOffersUsageHistory(userId);
+
+    const rows: any[] = [];
+
+    // 1️⃣ Redemptions by Offer
+    rows.push({ Section: 'Redemptions by Offer' });
+    rows.push({ Offer: 'Offer', Redemptions: 'Count' });
+    data.charts.redemptionsByOffer.forEach((r) =>
+      rows.push({ Offer: r.title, Redemptions: r.count }),
+    );
+    rows.push({}); // empty row
+
+    // 2️⃣ Top Performing Offers
+    rows.push({ Section: 'Top Performing Offers' });
+    rows.push({ Offer: 'Offer', Redemptions: 'Count' });
+    data.charts.topPerformingOffers.forEach((r) =>
+      rows.push({ Offer: r.title, Redemptions: r.count }),
+    );
+    rows.push({});
+
+    // 3️⃣ Redemptions by Day of Week
+    rows.push({ Section: 'Redemptions by Day of Week' });
+    rows.push({ Day: 'Weekday', Redemptions: 'Count' });
+    data.charts.redemptionsByWeekday.forEach((r) =>
+      rows.push({ Day: r.weekday, Redemptions: r.count }),
+    );
+    rows.push({});
+
+    // 4️⃣ Redemptions by Hour
+    rows.push({ Section: 'Redemptions by Hour' });
+    rows.push({ Hour: 'Hour', Redemptions: 'Count' });
+    data.charts.redemptionsByHour.forEach((r) =>
+      rows.push({ Hour: r.hour, Redemptions: r.count }),
+    );
+    rows.push({});
+
+    // 5️⃣ Offer Performance Analysis
+    rows.push({ Section: 'Offer Performance Analysis' });
+    rows.push({
+      Offer: 'Offer',
+      RedeemedCount: 'Redeemed Count',
+      LastRedeemedAt: 'Last Redeemed At',
+      Performance: 'Performance',
+    });
+    data.offerPerformanceAnalysis.forEach((r) =>
+      rows.push({
+        Offer: r.title,
+        RedeemedCount: r.redeemedCount,
+        LastRedeemedAt: r.lastRedeemedAt.toISOString(),
+        Performance: r.performance,
+      }),
+    );
+
+    // Generate CSV
+    const parser = new Parser({ header: false });
+    const csv = parser.parse(rows);
+
+    return csv;
   }
 }

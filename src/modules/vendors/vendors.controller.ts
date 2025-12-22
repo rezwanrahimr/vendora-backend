@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   UseGuards,
   Query,
+  Res,
 } from '@nestjs/common';
 import { VendorsService } from './vendors.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -15,6 +16,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { ApiQuery, ApiSecurity } from '@nestjs/swagger';
+import { Response } from 'express';
 
 @Controller('vendors')
 @ApiSecurity('JWT') // Apply JWT security scheme to all endpoints in this controller
@@ -115,4 +117,14 @@ export class VendorsController {
   getOffersUsageHistory(@CurrentUser() user: any) {
     return this.vendorsService.getOffersUsageHistory(user.id);
   }
+
+  @Get('/export-to-csv')
+async exportToCSV(@CurrentUser() user: any, @Res() res: Response) {
+  const csv = await this.vendorsService.exportToCsv(user.id);
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="offers-performance.csv"`);
+
+  res.send(csv);
+}
 }

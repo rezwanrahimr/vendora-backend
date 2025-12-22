@@ -39,6 +39,16 @@ model UserNotification {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model Category {
+  id             String          @id @default(uuid())
+  name           String
+  icon           String?
+  vendorProfiles VendorProfile[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model VendorProfile {
   id            String   @id @default(uuid())
   userId        String   @unique
@@ -52,6 +62,8 @@ model VendorProfile {
   streetAddress String
   vendorId      String   @default(uuid())
   zipCode       String
+  categoryId    String
+  Category      Category @relation(fields: [categoryId], references: [id])
   offers        Offer[]
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
