@@ -323,7 +323,17 @@ export class OfferService {
     });
   }
 
-  async getQuickStatsForVendor(vendorId: string) {
+  async getQuickStatsForVendor(userId: string) {
+    const vendor = await this.prisma.vendorProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const vendorId = vendor.id;
+
     const [totalActive, reusableOffers, oneTimeOffers] = await Promise.all([
       this.prisma.offer.count({
         where: { vendorId, status: 'ACTIVE', isDeleted: false },

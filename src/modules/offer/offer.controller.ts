@@ -7,6 +7,7 @@ import {
   Patch,
   Query,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { OfferService } from './offer.service';
 import {
@@ -17,13 +18,21 @@ import {
   UpdateOfferStatusDto,
 } from './dto/offer.dto';
 import { ApiParam } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { UserRole } from 'src/common/enums/user-role.enum';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 // TODO : add auth guard
 
+@UseGuards(JwtAuthGuard)
 @Controller('offer')
 export class OfferController {
   constructor(private readonly offerService: OfferService) {}
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Post('/create')
   create(@Body() createOfferDto: CreateOfferDto) {
     return this.offerService.createOffer(createOfferDto);
@@ -44,6 +53,8 @@ export class OfferController {
     return this.offerService.getAllOffers(query);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Patch('/:id/update-status')
   @ApiParam({
     name: 'id',
@@ -54,8 +65,8 @@ export class OfferController {
     return this.offerService.updateStatus(id, dto.status);
   }
 
-  // TODO: vendor id should be in the token, not param
-  @Get('/vendor/:vendorId')
+
+  @Get('/vendor')
   @ApiParam({
     name: 'vendorId',
     type: String,
@@ -67,6 +78,7 @@ export class OfferController {
   ) {
     return this.offerService.getOfferForVendor(vendorId, query);
   }
+
 
   @Patch('/:id')
   @ApiParam({
@@ -94,13 +106,10 @@ export class OfferController {
   }
 
   // TODO: vendor id should be in the token, not param
-  @Get('/quick-stats/:vendorId')
-  @ApiParam({
-    name: 'vendorId',
-    type: String,
-    description: 'The ID of the vendor whose quick stats to retrieve',
-  })
-  getQuickStatsForVendor(@Param('vendorId') vendorId: string) {
-    return this.offerService.getQuickStatsForVendor(vendorId);
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.VENDOR)
+  @Get('/quick-stats')
+  getQuickStatsForVendor(@CurrentUser() user: any) {
+    return this.offerService.getQuickStatsForVendor(user.id);
   }
 }
