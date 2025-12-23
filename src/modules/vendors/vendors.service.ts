@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { getDay, getHours } from 'date-fns';
+import { stat } from 'fs';
 
 @Injectable()
 export class VendorsService {
@@ -73,6 +74,50 @@ export class VendorsService {
       where: { userId: userId.toString() },
       data: { isVerified: true },
     });
+  }
+
+  async getAllMyOffers(userId: string) {
+    const vendor = await this.prisma.vendorProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const vendorId = vendor.id;
+
+    // Run stats queries in parallel
+    const [
+      totalOffers,
+      totalActiveOffers,
+      totalReusableOffers,
+      totalRedemptions,
+      offers,
+    ] = await Promise.all([
+      this.prisma.offer.count({ where: { vendorId, isDeleted: false } }),
+      this.prisma.offer.count({
+        where: { vendorId, status: 'ACTIVE', isDeleted: false },
+      }),
+      this.prisma.offer.count({
+        where: { vendorId, isReusable: true, isDeleted: false },
+      }),
+      this.prisma.offerRedemptionEvent.count({ where: { vendorId } }),
+      this.prisma.offer.findMany({
+        where: { vendorId, isDeleted: false },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      stats: {
+        totalOffers,
+        totalActiveOffers,
+        totalReusableOffers,
+        totalRedemptions,
+      },
+      offers,
+    };
   }
 
   // async getVendorDashboard(

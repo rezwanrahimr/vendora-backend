@@ -78,7 +78,13 @@ export class VendorsController {
     return this.vendorsService.verifyVendor(id);
   }
 
-  // TODO: later need to test both after auth guard
+  @Get('/my-offers')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.VENDOR)
+  getMyOffers(@CurrentUser() user: any) {
+    return this.vendorsService.getAllMyOffers(user.id);
+  }
+
   @Get('/dashboard')
   @ApiQuery({
     name: 'from',
@@ -99,8 +105,6 @@ export class VendorsController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-
-
     const options = {
       from: from ? new Date(from) : undefined,
       to: to ? new Date(to) : undefined,
@@ -127,9 +131,8 @@ export class VendorsController {
     res.send(csv);
   }
 
-  
   @Get(':id')
-  findOne(@Param('id',) id: string) {
+  findOne(@Param('id') id: string) {
     return this.vendorsService.findOne(id);
   }
 }
