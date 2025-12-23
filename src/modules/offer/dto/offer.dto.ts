@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { OfferStatus, OfferType } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
@@ -56,7 +57,6 @@ export class CreateOfferDto {
   // @Min(1)
   maxRedemptions?: number | null;
 
-  
   @ApiProperty({
     enum: OfferType,
     example: OfferType.DISCOUNT,
@@ -234,4 +234,27 @@ export class RedeemOfferDto {
   @IsEmail()
   @IsNotEmpty()
   customerEmail: string;
+}
+
+
+
+export class GetOfferByCategoryIdDto {
+  @ApiPropertyOptional({
+    example: 'category-12345',
+    description: 'ID of the category',
+  })
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Number of offers to return',
+    example: 5,
+    default: 5,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number;
 }

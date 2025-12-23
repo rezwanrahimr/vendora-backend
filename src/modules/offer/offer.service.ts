@@ -168,11 +168,11 @@ export class OfferService {
       throw new BadRequestException('Vendor ID is required');
     }
 
-    const vendor=await this.prisma.vendorProfile.findUnique({
-      where:{
-        id:vendorId
-      }
-    })
+    const vendor = await this.prisma.vendorProfile.findUnique({
+      where: {
+        id: vendorId,
+      },
+    });
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
@@ -239,7 +239,7 @@ export class OfferService {
     });
   }
 
-  // TODO: need to test after auth guard
+
   async redeemOffer(payload: RedeemOfferDto) {
     const { offerId, customerEmail } = payload;
 
@@ -343,5 +343,47 @@ export class OfferService {
       reusableOffers,
       oneTimeOffers,
     };
+  }
+
+  async getNewestOffers(categoryId?: string, limit = 5) {
+    return this.prisma.offer.findMany({
+      where: {
+        isDeleted: false,
+        ...(categoryId && {
+          VendorProfile: {
+            categoryId,
+          },
+        }),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: Number(limit),
+    });
+  }
+
+  async getTrendingOffers(categoryId?: string, limit = 5) {
+    const since = new Date();
+    since.setDate(since.getDate() - 7); // last 7 days
+
+    return this.prisma.offer.findMany({
+      where: {
+        isDeleted: false,
+        ...(categoryId && {
+          VendorProfile: {
+            categoryId,
+          },
+        }),
+        offerRedemptionEvents: {
+          some: {
+            redeemedAt: { gte: since },
+          },
+        },
+      },
+      orderBy: {
+        offerRedemptionEvents: {
+          _count: 'desc',
+        },
+      },
+      take: Number(limit),
+    });
   }
 }

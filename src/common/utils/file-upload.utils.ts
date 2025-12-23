@@ -7,7 +7,9 @@ import { existsSync, mkdirSync } from 'fs';
 export const imageFileFilter = (req: any, file: any, callback: any) => {
   if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
     return callback(
-      new BadRequestException('Only image files are allowed (jpg, jpeg, png, gif, webp)'),
+      new BadRequestException(
+        'Only image files are allowed (jpg, jpeg, png, gif, webp)',
+      ),
       false,
     );
   }
@@ -36,6 +38,15 @@ export const createUploadDir = (path: string) => {
 export const userImageStorage = diskStorage({
   destination: (req: any, file: any, callback: any) => {
     const uploadPath = './uploads/users/images';
+    createUploadDir(uploadPath);
+    callback(null, uploadPath);
+  },
+  filename: editFileName,
+});
+
+export const categoryImageStorage = diskStorage({
+  destination: (req: any, file: any, callback: any) => {
+    const uploadPath = './uploads/category/images';
     createUploadDir(uploadPath);
     callback(null, uploadPath);
   },

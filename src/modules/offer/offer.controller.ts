@@ -14,6 +14,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import {
   CreateOfferDto,
+  GetOfferByCategoryIdDto,
   GetOffersQueryDto,
   GetVendorOffersQueryDto,
   RedeemOfferDto,
@@ -67,7 +68,20 @@ export class OfferController {
     return this.offerService.getQuickStatsForVendor(user.id);
   }
 
-  // PARAMETERIZED ROUTES LAST
+  @Get('newest')
+  @ApiQuery({ name: 'categoryId', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  getNewestOffers(@Query() query: GetOfferByCategoryIdDto) {
+    return this.offerService.getNewestOffers(query.categoryId, query.limit);
+  }
+
+  @Get('trending')
+  @ApiQuery({ name: 'categoryId', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  getTrendingOffers(@Query() query: GetOfferByCategoryIdDto) {
+    return this.offerService.getTrendingOffers(query.categoryId, query.limit);
+  }
+
   @Get('/vendor/:vendorId')
   @ApiParam({
     name: 'vendorId',
@@ -92,6 +106,8 @@ export class OfferController {
     type: String,
     description: 'The ID of the offer to update',
   })
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   updateOffer(@Param('id') id: string, @Body() data: Partial<CreateOfferDto>) {
     return this.offerService.updateOffer(id, data);
   }
@@ -102,6 +118,8 @@ export class OfferController {
     type: String,
     description: 'The ID of the offer to delete',
   })
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   deleteOffer(@Param('id') id: string) {
     return this.offerService.deleteOffer(id);
   }
