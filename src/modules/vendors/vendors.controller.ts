@@ -37,11 +37,6 @@ export class VendorsController {
     return this.vendorsService.findOne(user.id);
   }
 
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.vendorsService.findOne(id);
-  }
-
   @Patch('me/profile')
   @UseGuards(RolesGuard)
   @Roles(UserRole.VENDOR) // Only vendors can update their own profile
@@ -83,7 +78,6 @@ export class VendorsController {
     return this.vendorsService.verifyVendor(id);
   }
 
-
   // TODO: later need to test both after auth guard
   @Get('/dashboard')
   @ApiQuery({
@@ -105,6 +99,8 @@ export class VendorsController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
+
+
     const options = {
       from: from ? new Date(from) : undefined,
       to: to ? new Date(to) : undefined,
@@ -119,12 +115,21 @@ export class VendorsController {
   }
 
   @Get('/export-to-csv')
-async exportToCSV(@CurrentUser() user: any, @Res() res: Response) {
-  const csv = await this.vendorsService.exportToCsv(user.id);
+  async exportToCSV(@CurrentUser() user: any, @Res() res: Response) {
+    const csv = await this.vendorsService.exportToCsv(user.id);
 
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename="offers-performance.csv"`);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="offers-performance.csv"`,
+    );
 
-  res.send(csv);
-}
+    res.send(csv);
+  }
+
+  
+  @Get(':id')
+  findOne(@Param('id',) id: string) {
+    return this.vendorsService.findOne(id);
+  }
 }
