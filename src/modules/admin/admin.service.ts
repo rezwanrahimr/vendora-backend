@@ -10,6 +10,48 @@ export class AdminService {
         private readonly emailService: EmailService
     ) { }
 
+
+    async dashboardStatus() {
+        const totalVendors = await this.prisma.user.count({
+            where: { role: 'VENDOR' }
+        });
+
+        const totalUsers = await this.prisma.user.count({
+            where: { role: 'USER' }
+        });
+
+        const activeOffers = await this.prisma.offer.count({
+            where: { status: 'ACTIVE' }
+        });
+
+        const redeemedOffers = await this.prisma.offerRedemptionEvent.count();
+
+        return {
+            totalVendors,
+            totalUsers,
+            activeOffers,
+            redeemedOffers,
+        };
+
+    }
+
+    async getProfile(id: string) {
+        const admin = await this.prisma.user.findFirst({
+            where: { id, role: 'ADMIN' },
+            select: {
+                name: true,
+                email: true,
+                phone: true,
+                imageUrl: true,
+                location: true,
+                role: true,
+                status: true,
+                createdAt: true,
+            }
+        });
+        return admin;
+    }
+
     async usersStatus() {
 
         const totalUsers = await this.prisma.user.count();

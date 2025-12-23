@@ -6,6 +6,7 @@ import { RolesGuard } from "src/common/guards/roles.guard";
 import { Roles } from "src/common/decorators/roles.decorator";
 import { UserRole } from "src/common/enums/user-role.enum";
 import { VendorUpdateDto } from "./dto/update-vendor.dto";
+import { CurrentUser } from "src/common/decorators/current-user.decorator";
 
 @ApiTags('Admin')
 @Controller('admin')
@@ -14,6 +15,21 @@ import { VendorUpdateDto } from "./dto/update-vendor.dto";
 @Roles(UserRole.ADMIN)
 export class AdminController {
     constructor(private readonly adminService: AdminService) { }
+
+
+    @Get('dashboard/status')
+    @ApiOperation({ summary: 'Get dashboard status' })
+    @ApiResponse({ status: 200, description: 'Dashboard status retrieved successfully' })
+    dashboardStatus() {
+        return this.adminService.dashboardStatus();
+    }
+
+    @Get('me')
+    @ApiOperation({ summary: 'Get admin profile' })
+    @ApiResponse({ status: 200, description: 'Admin profile retrieved successfully' })
+    getProfile(@CurrentUser() user: any) {
+        return this.adminService.getProfile(user.id);
+    }
 
     @Get('users/status')
     @ApiOperation({ summary: 'Get users status' })
@@ -81,6 +97,5 @@ export class AdminController {
     deleteVendor(@Param('id') id: string) {
         return this.adminService.deleteVendor(id);
     }
-
 
 }
