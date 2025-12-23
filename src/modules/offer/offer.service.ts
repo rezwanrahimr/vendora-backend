@@ -164,7 +164,22 @@ export class OfferService {
   async getOfferForVendor(vendorId: string, query: GetVendorOffersQueryDto) {
     const { page = 1, limit = 10, search, status, type } = query;
 
-    const filters: any = { vendorId, isDeleted: false };
+    if (!vendorId) {
+      throw new BadRequestException('Vendor ID is required');
+    }
+
+    const vendor=await this.prisma.vendorProfile.findUnique({
+      where:{
+        id:vendorId
+      }
+    })
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const filters: any = { vendorId: vendor.id, isDeleted: false };
+
     if (search) {
       filters.OR = [
         { title: { contains: search, mode: 'insensitive' } },
@@ -179,7 +194,7 @@ export class OfferService {
     const offers = await this.prisma.offer.findMany({
       where: filters,
       skip,
-      take: limit,
+      take: Number(limit), // ensure it's a number
       orderBy: { createdAt: 'desc' },
     });
 
@@ -189,8 +204,8 @@ export class OfferService {
       data: offers,
       meta: {
         total,
-        page,
-        lastPage: Math.ceil(total / limit),
+        page: Number(page),
+        lastPage: Math.ceil(total / Number(limit)),
       },
     };
   }
@@ -225,65 +240,70 @@ export class OfferService {
   }
 
   // TODO: need to test after auth guard
-async redeemOffer(payload: RedeemOfferDto) {
-  const { offerId, customerEmail } = payload;
+  async redeemOffer(payload: RedeemOfferDto) {
+    const { offerId, customerEmail } = payload;
 
-  // 1️⃣ Fetch customer
-  const customer = await this.prisma.user.findUnique({ where: { email: customerEmail } });
-  if (!customer) throw new NotFoundException(`Customer not found`);
-
-  return this.prisma.$transaction(async (tx) => {
-    // 2️⃣ Fetch offer
-    const offer = await tx.offer.findUnique({ where: { id: offerId } });
-    if (!offer) throw new NotFoundException(`Offer not found`);
-    if (offer.status !== 'ACTIVE') throw new BadRequestException('Offer not active');
-    if (offer.isDeleted) throw new BadRequestException('Offer deleted');
-    if (offer.maxRedemptions && offer.redeemedCount >= offer.maxRedemptions)
-      throw new BadRequestException('Offer maxed out');
-
-    // 3️⃣ Check previous redemption
-    const lastRedemption = await tx.offerRedemption.findUnique({
-      where: { offerId_userId: { offerId, userId: customer.id } },
+    // 1️⃣ Fetch customer
+    const customer = await this.prisma.user.findUnique({
+      where: { email: customerEmail },
     });
+    if (!customer) throw new NotFoundException(`Customer not found`);
 
-    // ❌ For non-reusable offers, throw error if already redeemed
-    if (!offer.isReusable && lastRedemption) {
-      throw new BadRequestException('This offer can only be redeemed once');
-    }
+    return this.prisma.$transaction(async (tx) => {
+      // 2️⃣ Fetch offer
+      const offer = await tx.offer.findUnique({ where: { id: offerId } });
+      if (!offer) throw new NotFoundException(`Offer not found`);
+      if (offer.status !== 'ACTIVE')
+        throw new BadRequestException('Offer not active');
+      if (offer.isDeleted) throw new BadRequestException('Offer deleted');
+      if (offer.maxRedemptions && offer.redeemedCount >= offer.maxRedemptions)
+        throw new BadRequestException('Offer maxed out');
 
-    // 4️⃣ Check cooldown for reusable offers
-    if (offer.isReusable && offer.cooldownPeriod && lastRedemption) {
-      const nextAvailable = new Date(lastRedemption.lastRedeemedAt);
-      nextAvailable.setDate(nextAvailable.getDate() + offer.cooldownPeriod);
-      if (nextAvailable > new Date()) {
-        const remainingDays = Math.ceil((nextAvailable.getTime() - Date.now()) / (1000*60*60*24));
-        throw new BadRequestException(`Offer on cooldown, try in ${remainingDays} day(s)`);
+      // 3️⃣ Check previous redemption
+      const lastRedemption = await tx.offerRedemption.findUnique({
+        where: { offerId_userId: { offerId, userId: customer.id } },
+      });
+
+      // ❌ For non-reusable offers, throw error if already redeemed
+      if (!offer.isReusable && lastRedemption) {
+        throw new BadRequestException('This offer can only be redeemed once');
       }
-    }
 
-    // 5️⃣ Upsert redemption (tracks lastRedeemedAt)
-    const redemption = await tx.offerRedemption.upsert({
-      where: { offerId_userId: { offerId, userId: customer.id } },
-      update: { lastRedeemedAt: new Date() },
-      create: { offerId, userId: customer.id },
+      // 4️⃣ Check cooldown for reusable offers
+      if (offer.isReusable && offer.cooldownPeriod && lastRedemption) {
+        const nextAvailable = new Date(lastRedemption.lastRedeemedAt);
+        nextAvailable.setDate(nextAvailable.getDate() + offer.cooldownPeriod);
+        if (nextAvailable > new Date()) {
+          const remainingDays = Math.ceil(
+            (nextAvailable.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+          );
+          throw new BadRequestException(
+            `Offer on cooldown, try in ${remainingDays} day(s)`,
+          );
+        }
+      }
+
+      // 5️⃣ Upsert redemption (tracks lastRedeemedAt)
+      const redemption = await tx.offerRedemption.upsert({
+        where: { offerId_userId: { offerId, userId: customer.id } },
+        update: { lastRedeemedAt: new Date() },
+        create: { offerId, userId: customer.id },
+      });
+
+      // 6️⃣ Log redemption event for dashboard
+      await tx.offerRedemptionEvent.create({
+        data: { offerId, userId: customer.id, vendorId: offer.vendorId },
+      });
+
+      // 7️⃣ Increment redeemedCount
+      const updatedOffer = await tx.offer.update({
+        where: { id: offerId },
+        data: { redeemedCount: { increment: 1 } },
+      });
+
+      return { offer: updatedOffer, redemption };
     });
-
-    // 6️⃣ Log redemption event for dashboard
-    await tx.offerRedemptionEvent.create({
-      data: { offerId, userId: customer.id, vendorId: offer.vendorId },
-    });
-
-    // 7️⃣ Increment redeemedCount
-    const updatedOffer = await tx.offer.update({
-      where: { id: offerId },
-      data: { redeemedCount: { increment: 1 } },
-    });
-
-    return { offer: updatedOffer, redemption };
-  });
-}
-
-
+  }
 
   async getQuickStatsForVendor(userId: string) {
     const vendor = await this.prisma.vendorProfile.findUnique({
