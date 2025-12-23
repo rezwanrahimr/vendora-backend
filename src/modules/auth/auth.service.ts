@@ -106,6 +106,21 @@ export class AuthService {
     // Create user with vendor profile and PENDING status
 
     const user = await this.prisma.$transaction(async (tx) => {
+      // Ensure default category exists
+      const defaultCategoryId = '00000000-0000-0000-0000-000000000000';
+      let defaultCategory = await tx.category.findUnique({
+        where: { id: defaultCategoryId },
+      });
+
+      if (!defaultCategory) {
+        defaultCategory = await tx.category.create({
+          data: {
+            id: defaultCategoryId,
+            name: 'General',
+            icon: '🏪',
+          },
+        });
+      }
 
       const newUser = await tx.user.create({
         data: {
@@ -122,7 +137,7 @@ export class AuthService {
               streetAddress,
               city,
               zipCode,
-              categoryId: '00000000-0000-0000-0000-000000000000', // Default category, should be updated later
+              categoryId: defaultCategoryId, // Default category, should be updated later
             },
           },
         },
