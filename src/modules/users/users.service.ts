@@ -3,10 +3,12 @@ import { PrismaService } from '../../prisma.service';
 import { unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateNotificationDto } from './dto/update-notification.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
@@ -34,20 +36,35 @@ export class UsersService {
     });
   }
 
-  async updateUser(id: string, data: { name?: string; isActive?: boolean }) {
+  async updateUser(id: string, updateData: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
+    // Prepare data with proper type conversion
+    const dataToUpdate: any = { ...updateData };
+    
+    // Ensure dateOfBirth is properly formatted if provided
+    if (updateData.dateOfBirth) {
+      dataToUpdate.dateOfBirth = new Date(updateData.dateOfBirth);
+    }
+
     return this.prisma.user.update({
       where: { id },
-      data,
+      data: dataToUpdate,
       select: {
         id: true,
         email: true,
         name: true,
+        phone: true,
+        location: true,
+        dateOfBirth: true,
+        imageUrl: true,
+        role: true,
+        status: true,
+        isEmailVerified: true,
         updatedAt: true,
       },
     });
@@ -55,7 +72,7 @@ export class UsersService {
 
   async uploadUserImage(userId: string, filename: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -94,7 +111,7 @@ export class UsersService {
 
   async deleteUserImage(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -128,11 +145,11 @@ export class UsersService {
   }
 
   async updateNotificationPreferences(userId: string, data: { newOffer?: boolean; renewalReminder?: boolean; promotional?: boolean }) {
-    const user = await this.prisma.user.findUnique({ 
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { notifications: true }
     });
-    
+
     if (!user) {
       throw new NotFoundException('User not found');
     }

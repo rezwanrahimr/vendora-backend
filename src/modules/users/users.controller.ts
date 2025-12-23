@@ -101,11 +101,21 @@ export class UsersController {
     return this.usersService.updateNotificationPreferences(user.id, updateData);
   }
 
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update user' })
+  @Patch('me')
+  @ApiOperation({ summary: 'Update current user profile' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  update(@Param('id') id: string, @Body() updateData: UpdateUserDto) {
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  updateProfile(@CurrentUser() user: any, @Body() updateData: UpdateUserDto) {
+    return this.usersService.updateUser(user.id, updateData);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update user by ID' })
+  @ApiResponse({ status: 200, description: 'User updated successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  updateById(@Param('id') id: string, @Body() updateData: UpdateUserDto) {
     return this.usersService.updateUser(id, updateData);
   }
 }
