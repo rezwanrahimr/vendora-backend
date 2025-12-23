@@ -84,7 +84,7 @@ model Offer {
   updatedAt             DateTime               @updatedAt
   metadata              Json?
   isDeleted             Boolean                @default(false)
-  cooldownPeriod        Int? 
+  cooldownPeriod        Int?
   VendorProfile         VendorProfile          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   offerRedemptions      OfferRedemption[]
   offerRedemptionEvents OfferRedemptionEvent[]
@@ -116,6 +116,15 @@ model OfferRedemptionEvent {
 
   @@index([vendorId, redeemedAt])
   @@index([offerId, redeemedAt])
+}
+
+model AdminLegal {
+  id                 String @id @default("ADMIN_LEGAL_SINGLETON_ID")
+  TermsAndConditions String
+  PrivacyPolicy      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum UserRole {
