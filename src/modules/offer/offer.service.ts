@@ -19,7 +19,7 @@ export class OfferService {
   async createOffer(payload: CreateOfferDto) {
     const vendor = await this.prisma.vendorProfile.findUnique({
       where: {
-        userId: payload.vendorId.toString(),
+        id: payload.vendorId.toString(),
       },
     });
 
@@ -225,103 +225,65 @@ export class OfferService {
   }
 
   // TODO: need to test after auth guard
-  async redeemOffer(payload: RedeemOfferDto) {
-    const { offerId, customerEmail } = payload;
+async redeemOffer(payload: RedeemOfferDto) {
+  const { offerId, customerEmail } = payload;
 
-    const customer = await this.prisma.user.findUnique({
-      where: { email: customerEmail },
+  // 1️⃣ Fetch customer
+  const customer = await this.prisma.user.findUnique({ where: { email: customerEmail } });
+  if (!customer) throw new NotFoundException(`Customer not found`);
+
+  return this.prisma.$transaction(async (tx) => {
+    // 2️⃣ Fetch offer
+    const offer = await tx.offer.findUnique({ where: { id: offerId } });
+    if (!offer) throw new NotFoundException(`Offer not found`);
+    if (offer.status !== 'ACTIVE') throw new BadRequestException('Offer not active');
+    if (offer.isDeleted) throw new BadRequestException('Offer deleted');
+    if (offer.maxRedemptions && offer.redeemedCount >= offer.maxRedemptions)
+      throw new BadRequestException('Offer maxed out');
+
+    // 3️⃣ Check previous redemption
+    const lastRedemption = await tx.offerRedemption.findUnique({
+      where: { offerId_userId: { offerId, userId: customer.id } },
     });
 
-    if (!customer) {
-      throw new NotFoundException(
-        `Customer with email ${customerEmail} not found`,
-      );
+    // ❌ For non-reusable offers, throw error if already redeemed
+    if (!offer.isReusable && lastRedemption) {
+      throw new BadRequestException('This offer can only be redeemed once');
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      // 1️⃣ Fetch offer
-      const offer = await tx.offer.findUnique({
-        where: { id: offerId },
-      });
-
-      if (!offer) {
-        throw new NotFoundException(`Offer with ID ${offerId} not found`);
+    // 4️⃣ Check cooldown for reusable offers
+    if (offer.isReusable && offer.cooldownPeriod && lastRedemption) {
+      const nextAvailable = new Date(lastRedemption.lastRedeemedAt);
+      nextAvailable.setDate(nextAvailable.getDate() + offer.cooldownPeriod);
+      if (nextAvailable > new Date()) {
+        const remainingDays = Math.ceil((nextAvailable.getTime() - Date.now()) / (1000*60*60*24));
+        throw new BadRequestException(`Offer on cooldown, try in ${remainingDays} day(s)`);
       }
+    }
 
-      if (offer.status !== 'ACTIVE') {
-        throw new BadRequestException('Offer is not active');
-      }
-
-      if (offer.isDeleted) {
-        throw new BadRequestException('Offer is deleted');
-      }
-
-      if (
-        offer.maxRedemptions !== null &&
-        offer.redeemedCount >= offer.maxRedemptions
-      ) {
-        throw new BadRequestException(
-          'Offer has reached its maximum redemptions',
-        );
-      }
-
-      // 2️⃣ Cooldown check
-      if (offer.isReusable && offer.cooldownPeriod) {
-        const lastRedemption = await tx.offerRedemption.findUnique({
-          where: { offerId_userId: { offerId, userId: customer.id } },
-        });
-
-        if (lastRedemption) {
-          const nextAvailable = new Date(lastRedemption.lastRedeemedAt);
-          nextAvailable.setDate(nextAvailable.getDate() + offer.cooldownPeriod);
-
-          if (nextAvailable > new Date()) {
-            const remainingDays = Math.ceil(
-              (nextAvailable.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-            );
-
-            throw new BadRequestException(
-              `Offer is on cooldown. Try again in ${remainingDays} day(s)`,
-            );
-          }
-        }
-      }
-
-      // 3️⃣ Upsert redemption state (cooldown tracking)
-      const redemption = await tx.offerRedemption.upsert({
-        where: { offerId_userId: { offerId, userId: customer.id } },
-        update: { lastRedeemedAt: new Date() },
-        create: { offerId, userId: customer.id },
-      });
-
-      // 4️⃣ Insert analytics event (CRITICAL)
-      await tx.offerRedemptionEvent.create({
-        data: {
-          offerId,
-          userId: customer.id,
-          vendorId: offer.vendorId,
-        },
-      });
-
-      // 5️⃣ Increment counter
-      const updatedOffer = await tx.offer.update({
-        where: { id: offerId },
-        data: { redeemedCount: { increment: 1 } },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          status: true,
-          isReusable: true,
-          maxRedemptions: true,
-          cooldownPeriod: true,
-          redeemedCount: true,
-        },
-      });
-
-      return { redemption, offer: updatedOffer };
+    // 5️⃣ Upsert redemption (tracks lastRedeemedAt)
+    const redemption = await tx.offerRedemption.upsert({
+      where: { offerId_userId: { offerId, userId: customer.id } },
+      update: { lastRedeemedAt: new Date() },
+      create: { offerId, userId: customer.id },
     });
-  }
+
+    // 6️⃣ Log redemption event for dashboard
+    await tx.offerRedemptionEvent.create({
+      data: { offerId, userId: customer.id, vendorId: offer.vendorId },
+    });
+
+    // 7️⃣ Increment redeemedCount
+    const updatedOffer = await tx.offer.update({
+      where: { id: offerId },
+      data: { redeemedCount: { increment: 1 } },
+    });
+
+    return { offer: updatedOffer, redemption };
+  });
+}
+
+
 
   async getQuickStatsForVendor(userId: string) {
     const vendor = await this.prisma.vendorProfile.findUnique({

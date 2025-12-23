@@ -17,7 +17,7 @@ import {
   RedeemOfferDto,
   UpdateOfferStatusDto,
 } from './dto/offer.dto';
-import { ApiParam } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -27,25 +27,16 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 // TODO : add auth guard
 
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth('JWT')
 @Controller('offer')
 export class OfferController {
   constructor(private readonly offerService: OfferService) {}
 
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @Post('/create')
   create(@Body() createOfferDto: CreateOfferDto) {
     return this.offerService.createOffer(createOfferDto);
-  }
-
-  @Get('/:id')
-  @ApiParam({
-    name: 'id',
-    type: String,
-    description: 'The ID of the offer to retrieve',
-  })
-  getOfferById(@Param('id') id: string) {
-    return this.offerService.getOfferById(id);
   }
 
   @Get()
@@ -65,7 +56,6 @@ export class OfferController {
     return this.offerService.updateStatus(id, dto.status);
   }
 
-
   @Get('/vendor')
   @ApiParam({
     name: 'vendorId',
@@ -78,7 +68,6 @@ export class OfferController {
   ) {
     return this.offerService.getOfferForVendor(vendorId, query);
   }
-
 
   @Patch('/:id')
   @ApiParam({
@@ -111,5 +100,15 @@ export class OfferController {
   @Get('/quick-stats')
   getQuickStatsForVendor(@CurrentUser() user: any) {
     return this.offerService.getQuickStatsForVendor(user.id);
+  }
+
+  @Get('/:id')
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'The ID of the offer to retrieve',
+  })
+  getOfferById(@Param('id') id: string) {
+    return this.offerService.getOfferById(id);
   }
 }
