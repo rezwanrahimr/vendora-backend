@@ -297,8 +297,8 @@ export class AuthService {
     if (!user) {
       // Return success even if user not found (security best practice)
       return new ResponseDto(
-        true,
-        'If an account with that email exists, a verification code has been sent',
+        false,
+        'User with that email does not exist',
         null
       );
     }
@@ -313,8 +313,8 @@ export class AuthService {
     await this.emailService.sendPasswordResetEmail(email, resetCode, user.name || '');
 
     return new ResponseDto(
-      true,
-      'If an account with that email exists, a verification code has been sent',
+      false,
+      'User with that email does not exist',
       null
     );
   }
@@ -448,10 +448,10 @@ export class AuthService {
   async logout(userId: number, token: string) {
     // Extract token expiry time
     const decoded = this.jwtService.decode(token) as { exp: number };
-    
+
     if (decoded && decoded.exp) {
       const ttl = decoded.exp - Math.floor(Date.now() / 1000);
-      
+
       if (ttl > 0) {
         // Store token in blacklist cache until it expires
         await this.cacheService.setResetToken(`blacklist:${token}`, String(userId), ttl);
