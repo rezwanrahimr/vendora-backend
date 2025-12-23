@@ -24,8 +24,6 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
-
-
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT')
 @Controller('offer')
