@@ -26,6 +26,7 @@ import {
   ApiConsumes,
   ApiBody,
   ApiResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import {
   userImageStorage,
@@ -38,7 +39,7 @@ import { UpdateNotificationDto } from './dto/update-notification.dto';
 
 @Controller('users')
 @ApiTags('Users')
-@ApiSecurity('JWT') // Apply JWT security scheme to all endpoints in this controller
+@ApiBearerAuth('JWT') 
 @UseGuards(JwtAuthGuard) // All routes require authentication
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

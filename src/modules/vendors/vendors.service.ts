@@ -158,7 +158,7 @@ export class VendorsService {
         orderBy: { _count: { id: 'desc' } },
       });
 
-    const offerIds = redemptionsByOfferRaw.map((r) => r.offerId as string);
+    const offerIds = redemptionsByOfferRaw.map((r) => r.offerId);
     const offers = await this.prisma.offer.findMany({
       where: { id: { in: offerIds } },
       select: { id: true, title: true, redeemedCount: true, updatedAt: true },

@@ -22,17 +22,21 @@ async function bootstrap() {
   // __dirname is dist/src, so we need to go up two levels to reach project root
   app.use('/uploads', express.static(join(__dirname, '..', '..', 'uploads')));
 
-  // TODO : need to check auth guard for swagger doc access
+
   const options = new DocumentBuilder()
     .setTitle(packageJson.name)
     .setDescription(packageJson.description)
     .setVersion(packageJson.version)
-    // Define global security scheme for raw JWT
-    .addSecurity('JWT', {
-      type: 'apiKey', // raw token in header
-      in: 'header',
-      name: 'Authorization', // header name
-    })
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        in: 'header',
+      },
+      'JWT',
+    )
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, options);
@@ -40,13 +44,6 @@ async function bootstrap() {
   SwaggerModule.setup('doc', app, documentFactory, {
     swaggerOptions: {
       persistAuthorization: true,
-      authAction: {
-        JWT: {
-          name: 'Authorization',
-          schema: { type: 'apiKey', in: 'header', name: 'Authorization' },
-          value: 'your-test-token-here', // optional: prefill for testing
-        },
-      },
     },
   });
 
