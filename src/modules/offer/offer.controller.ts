@@ -1,15 +1,17 @@
 import {
-  Controller,
-  Post,
   Body,
+  Controller,
+  Delete,
   Get,
   Param,
   Patch,
+  Post,
   Query,
-  Delete,
   UseGuards,
 } from '@nestjs/common';
-import { OfferService } from './offer.service';
+import { ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 import {
   CreateOfferDto,
   GetOffersQueryDto,
@@ -17,14 +19,12 @@ import {
   RedeemOfferDto,
   UpdateOfferStatusDto,
 } from './dto/offer.dto';
-import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { RolesGuard } from 'src/common/guards/roles.guard';
+import { OfferService } from './offer.service';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
-// TODO : add auth guard
+
 
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT')
@@ -32,8 +32,9 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 export class OfferController {
   constructor(private readonly offerService: OfferService) {}
 
+  // STATIC ROUTES FIRST
   @UseGuards(RolesGuard)
-  // @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN)
   @Post('/create')
   create(@Body() createOfferDto: CreateOfferDto) {
     return this.offerService.createOffer(createOfferDto);
@@ -56,12 +57,30 @@ export class OfferController {
     return this.offerService.updateStatus(id, dto.status);
   }
 
-  @Get('/vendor')
+  @Post('/redeem')
+  redeemOffer(@Body() payload: RedeemOfferDto) {
+    return this.offerService.redeemOffer(payload);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.VENDOR)
+  @Get('/quick-stats')
+  getQuickStatsForVendor(@CurrentUser() user: any) {
+    return this.offerService.getQuickStatsForVendor(user.id);
+  }
+
+  // PARAMETERIZED ROUTES LAST
+  @Get('/vendor/:vendorId')
   @ApiParam({
     name: 'vendorId',
     type: String,
     description: 'The ID of the vendor whose offers to retrieve',
   })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'type', required: false, type: String })
   getOffersForVendor(
     @Param('vendorId') vendorId: string,
     @Query() query: GetVendorOffersQueryDto,
@@ -87,19 +106,6 @@ export class OfferController {
   })
   deleteOffer(@Param('id') id: string) {
     return this.offerService.deleteOffer(id);
-  }
-
-  @Post('/redeem')
-  redeemOffer(@Body() payload: RedeemOfferDto) {
-    return this.offerService.redeemOffer(payload);
-  }
-
-  // TODO: vendor id should be in the token, not param
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.VENDOR)
-  @Get('/quick-stats')
-  getQuickStatsForVendor(@CurrentUser() user: any) {
-    return this.offerService.getQuickStatsForVendor(user.id);
   }
 
   @Get('/:id')
