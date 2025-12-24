@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { getDay, getHours } from 'date-fns';
-import { stat } from 'fs';
+
+
 
 @Injectable()
 export class VendorsService {
@@ -193,7 +194,7 @@ export class VendorsService {
   //   };
   // }
 
-  // TODO: export to csv,
+
 
   async getVendorDashboard(
     userId: string,
@@ -279,31 +280,31 @@ export class VendorsService {
     }));
 
     // 6️⃣ Redemptions by offer
-    const redemptionsByOffer = offers.map((o) => ({
-      offerId: o.id,
-      title: o.title,
-      count: redemptionMap.get(o.id) ?? 0,
-    }));
+    // const redemptionsByOffer = offers.map((o) => ({
+    //   offerId: o.id,
+    //   title: o.title,
+    //   count: redemptionMap.get(o.id) ?? 0,
+    // }));
 
-    const topPerformingOffers = redemptionsByOffer
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+    // const topPerformingOffers = redemptionsByOffer
+    //   .sort((a, b) => b.count - a.count)
+    //   .slice(0, 10);
 
     // 7️⃣ Offer performance analysis
-    const offerPerformanceAnalysis = offers.map((o) => {
-      const count = redemptionMap.get(o.id) ?? 0;
-      let performance: 'LOW' | 'MEDIUM' | 'HIGH' = 'HIGH';
-      if (count < 20) performance = 'LOW';
-      else if (count <= 50) performance = 'MEDIUM';
+    // const offerPerformanceAnalysis = offers.map((o) => {
+    //   const count = redemptionMap.get(o.id) ?? 0;
+    //   let performance: 'LOW' | 'MEDIUM' | 'HIGH' = 'HIGH';
+    //   if (count < 20) performance = 'LOW';
+    //   else if (count <= 50) performance = 'MEDIUM';
 
-      return {
-        offerId: o.id,
-        title: o.title,
-        redeemedCount: count,
-        lastRedeemedAt: o.updatedAt,
-        performance,
-      };
-    });
+    //   return {
+    //     offerId: o.id,
+    //     title: o.title,
+    //     redeemedCount: count,
+    //     lastRedeemedAt: o.updatedAt,
+    //     performance,
+    //   };
+    // });
 
     // 8️⃣ Stats
     const totalOffers = offers.length;
@@ -325,10 +326,10 @@ export class VendorsService {
       },
       charts: {
         dailyRedemptions,
-        redemptionsByOffer,
-        topPerformingOffers,
+        // redemptionsByOffer,
+        // topPerformingOffers,
       },
-      offerPerformanceAnalysis,
+      // offerPerformanceAnalysis,
     };
   }
 
