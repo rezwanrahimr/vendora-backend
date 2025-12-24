@@ -25,9 +25,12 @@ export class AdminNotificationController {
   @Patch('/push-notifications')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Update push notification settings (Admin only)' })
-  @ApiResponse({ status: 200, description: 'Push notification settings updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Push notification settings updated successfully',
+  })
   @ApiResponse({ status: 403, description: 'Forbidden. Admin role required.' })
   async savePushNotificationSettings(@Body() payload: PushNotificationDto) {
     return await this.adminNotificationService.savePushNotificationSettings(
@@ -38,9 +41,12 @@ export class AdminNotificationController {
   @Patch('/email-notifications')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Update email notification settings (Admin only)' })
-  @ApiResponse({ status: 200, description: 'Email notification settings updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Email notification settings updated successfully',
+  })
   @ApiResponse({ status: 403, description: 'Forbidden. Admin role required.' })
   async saveEmailNotificationSettings(@Body() payload: EmailNotificationDto) {
     return await this.adminNotificationService.saveEmailNotificationSettings(
@@ -50,9 +56,12 @@ export class AdminNotificationController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Get current admin notification settings' })
-  @ApiResponse({ status: 200, description: 'Returns admin notification settings' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns admin notification settings',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getAdminNotification() {
     return await this.adminNotificationService.getAdminNotification();
