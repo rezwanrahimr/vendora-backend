@@ -489,4 +489,46 @@ export class OfferService {
       },
     });
   }
+
+  async getMyRedeemedOffersWithSavings(userId: string) {
+    // 1️⃣ Fetch all offer redemptions for the user with related offer and vendor info
+    const redemptions = await this.prisma.offerRedemption.findMany({
+      where: { userId },
+      include: {
+        Offer: {
+          select: {
+            title: true,
+            thumbnail: true,
+            estimatedValue: true,
+            VendorProfile: {
+              select: {
+                businessName: true,
+                city: true,
+                streetAddress: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // 2️⃣ Calculate total savings per offer
+    const result = redemptions.map((r) => ({
+      offerId: r.offerId,
+      title: r.Offer.title,
+      vendorName: r.Offer.VendorProfile.businessName,
+      image: r.Offer.thumbnail,
+      savedAmount: r.Offer.estimatedValue, // amount saved per redemption
+      lastRedeemedAt: r.lastRedeemedAt,
+      vendorAddress: `${r.Offer.VendorProfile.streetAddress}, ${r.Offer.VendorProfile.city}`,
+    }));
+
+    // 3️⃣ Calculate total savings across all redemptions
+    const totalSaving = result.reduce((sum, r) => sum + r.savedAmount, 0);
+
+    return {
+      totalSaving,
+      redeemedOffers: result,
+    };
+  }
 }

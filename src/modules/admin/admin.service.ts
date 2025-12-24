@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { EmailService } from '../auth/email.service';
 import { VendorUpdateDto } from './dto/update-vendor.dto';
+import { format, getMonth } from 'date-fns';
 
 @Injectable()
 export class AdminService {
@@ -248,5 +249,76 @@ export class AdminService {
     });
 
     return { message: 'Vendor deleted successfully' };
+  }
+
+  async getTopPerformingVendors() {
+    // 1️⃣ Aggregate offers by vendorId using Prisma's aggregate on Offer
+    const vendorsAgg = await this.prisma.offer.groupBy({
+      by: ['vendorId'],
+      _count: { id: true }, // total offers
+      _sum: { redeemedCount: true }, // total redeemed
+      orderBy: { _sum: { redeemedCount: 'desc' } },
+      take: 5,
+    });
+
+    // 2️⃣ Fetch vendor names
+    const result = await Promise.all(
+      vendorsAgg.map(async (v) => {
+        const vendor = await this.prisma.vendorProfile.findUnique({
+          where: { id: v.vendorId },
+          select: { businessName: true },
+        });
+
+        const totalOffers = v._count.id;
+        const totalRedeemed = v._sum.redeemedCount ?? 0;
+        const redemptionRatio =
+          totalOffers > 0 ? Math.round((totalRedeemed / totalOffers) * 100) : 0;
+
+        return {
+          vendorId: v.vendorId,
+          vendorName: vendor?.businessName || 'Unknown',
+          totalOffers,
+          totalRedeemed,
+          redemptionRatio,
+        };
+      }),
+    );
+
+    return result;
+  }
+
+  async offerRedeemChart(year?: number) {
+    const currentYear = year ?? new Date().getFullYear();
+
+    // 1️⃣ Fetch all redemption events for the given year
+    const events = await this.prisma.offerRedemptionEvent.findMany({
+      where: {
+        redeemedAt: {
+          gte: new Date(currentYear, 0, 1), // Jan 1 of year
+          lt: new Date(currentYear + 1, 0, 1), // Jan 1 of next year
+        },
+      },
+      select: {
+        redeemedAt: true,
+      },
+    });
+
+    // 2️⃣ Initialize array for 12 months with names
+    const chartData = Array.from({ length: 12 }, (_, i) => {
+      const date = new Date(currentYear, i, 1);
+      return {
+        month: i + 1,
+        monthName: format(date, 'MMMM'), // full month name
+        totalRedemptions: 0,
+      };
+    });
+
+    // 3️⃣ Count redemptions per month
+    events.forEach((event) => {
+      const month = getMonth(event.redeemedAt); // 0 = Jan, 11 = Dec
+      chartData[month].totalRedemptions += 1;
+    });
+
+    return chartData;
   }
 }

@@ -17,6 +17,7 @@ import {
   ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
@@ -44,6 +45,14 @@ import {
 @Controller('offer')
 export class OfferController {
   constructor(private readonly offerService: OfferService) {}
+
+  @Get('/my-redeemed-offers')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
+  @ApiResponse({ status: 200, description: 'OK' })
+  getMyRedeemedOffersWithSavings(@CurrentUser() user: any) {
+    return this.offerService.getMyRedeemedOffersWithSavings(user.id);
+  }
 
   // STATIC ROUTES FIRST
   @UseGuards(RolesGuard)

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { getDay, getHours } from 'date-fns';
 
@@ -46,25 +46,55 @@ export class VendorsService {
     userId: string,
     data: {
       businessName?: string;
-      businessAddress?: string;
-      phoneNumber?: string;
-      taxId?: string;
-      description?: string;
+      contactEmail?: string;
+      phone?: string;
+      streetAddress?: string;
+      city?: string;
     },
   ) {
+    // 1️⃣ Fetch vendor with profile
     const vendor = await this.prisma.user.findFirst({
-      where: { id: userId.toString(), role: 'VENDOR' },
+      where: { id: userId, role: 'VENDOR' },
       include: { vendorProfile: true },
     });
 
-    if (!vendor) {
+    if (!vendor || !vendor.vendorProfile) {
       throw new NotFoundException('Vendor not found');
     }
 
-    return this.prisma.vendorProfile.update({
-      where: { userId: userId.toString() },
-      data,
+    // 2️⃣ Check phone uniqueness
+    if (data.phone) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { phone: data.phone },
+      });
+      if (existingUser && existingUser.id !== userId) {
+        throw new BadRequestException('Phone number already in use');
+      }
+    }
+
+    // 3️⃣ Separate User fields (only phone) and VendorProfile fields
+    const { phone, ...vendorData } = data;
+
+    // 4️⃣ Remove undefined values from VendorProfile update
+    const cleanedVendorData = Object.fromEntries(
+      Object.entries(vendorData).filter(([_, v]) => v !== undefined),
+    );
+
+    // 5️⃣ Update VendorProfile
+    const updatedProfile = await this.prisma.vendorProfile.update({
+      where: { userId },
+      data: cleanedVendorData,
     });
+
+    // 6️⃣ Update phone if provided
+    if (phone) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { phone },
+      });
+    }
+
+    return updatedProfile;
   }
 
   async verifyVendor(userId: string) {
