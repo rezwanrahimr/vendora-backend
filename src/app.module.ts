@@ -10,6 +10,7 @@ import { PrismaModule } from './prisma.module';
 import { OfferModule } from './modules/offer/offer.module';
 import { CategoryModule } from './modules/category/category.module';
 import { AdminLegalModule } from './modules/admin-legal/admin-legal.module';
+import { AdminNotificationModule } from './modules/admin-notification/admin-notification.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AdminLegalModule } from './modules/admin-legal/admin-legal.module';
     OfferModule,
     CategoryModule,
     AdminLegalModule,
+    AdminNotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

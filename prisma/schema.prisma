@@ -127,6 +127,19 @@ model AdminLegal {
   updatedAt DateTime @updatedAt
 }
 
+model AdminNotification {
+  id                           String  @id @default("ADMIN_NOTIFICATION_SINGLETON_ID")
+  enablePushNotifications      Boolean @default(true)
+  newOfferNotifications        Boolean @default(true)
+  expiryOfferNotifications     Boolean @default(true)
+  subscriptionRenewalReminders Boolean @default(true)
+  enableEmailNotifications     Boolean @default(true)
+  weeklyDigest                 Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum UserRole {
   ADMIN
   VENDOR
