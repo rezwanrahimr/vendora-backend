@@ -14,13 +14,17 @@ import {
   ApiResponse,
   ApiSecurity,
   ApiQuery,
+  ApiBody,
 } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
-import { VendorUpdateDto } from './dto/update-vendor.dto';
+import {
+  ChangeVendorStatusDto,
+  VendorUpdateDto,
+} from './dto/update-vendor.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 @ApiTags('Admin')
@@ -30,6 +34,11 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 @Roles(UserRole.ADMIN)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  @Get('/offer-redemption-stats')
+  async adminRedeemedOfferStats() {
+    return this.adminService.adminRedeemedOfferStats();
+  }
 
   @Get('/top-performing-vendors')
   @ApiOperation({ summary: 'Get top performing vendors' })
@@ -162,5 +171,23 @@ export class AdminController {
   @ApiResponse({ status: 200, description: 'Vendor deleted successfully' })
   deleteVendor(@Param('id') id: string) {
     return this.adminService.deleteVendor(id);
+  }
+
+  @Patch('/status/:id')
+  @ApiOperation({ summary: 'Change offer status by ID, only for admin' })
+  @ApiResponse({
+    status: 200,
+    description: 'Offer status updated successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Offer not found' })
+  @ApiBody({
+    type: ChangeVendorStatusDto,
+    description: 'Optional status to update',
+  })
+  changeOfferStatus(
+    @Param('id') id: string,
+    @Body() dto: ChangeVendorStatusDto,
+  ) {
+    return this.adminService.changeOfferStatus(id, dto.status);
   }
 }

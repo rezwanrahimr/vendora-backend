@@ -8,6 +8,8 @@ import {
   UseGuards,
   Query,
   Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { VendorsService } from './vendors.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -17,18 +19,64 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import {
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiResponse,
   ApiSecurity,
 } from '@nestjs/swagger';
 import { Response } from 'express';
+import {
+  ImageUploadResponseDto,
+  UploadImageDto,
+} from '../users/dto/upload-image.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  imageFileFilter,
+  vendorLogoStorage,
+} from 'src/common/utils/file-upload.utils';
+import { FileSizeInterceptor } from 'src/common/interceptors/file-size.interceptor';
 
 @Controller('vendors')
 @ApiSecurity('JWT') // Apply JWT security scheme to all endpoints in this controller
 @UseGuards(JwtAuthGuard) // All routes require authentication
 export class VendorsController {
   constructor(private readonly vendorsService: VendorsService) {}
+
+  @Patch('/upload-logo')
+  @ApiOperation({ summary: 'Upload user profile image, vendor only' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({
+    status: 200,
+    description: 'Image uploaded successfully',
+    type: ImageUploadResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid file type or size' })
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: vendorLogoStorage,
+      fileFilter: imageFileFilter,
+    }),
+    FileSizeInterceptor,
+  )
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        image: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  async uploadLogo(
+    @CurrentUser() user: any,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.vendorsService.uploadLogo(user.id, file);
+  }
 
   @Get()
   // Anyone authenticated can see vendor list

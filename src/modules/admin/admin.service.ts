@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { EmailService } from '../auth/email.service';
 import { VendorUpdateDto } from './dto/update-vendor.dto';
 import { format, getMonth } from 'date-fns';
+import { OfferStatus } from '@prisma/client';
 
 @Injectable()
 export class AdminService {
@@ -102,6 +103,9 @@ export class AdminService {
     });
 
     return {
+      statistics: {
+        totalUsers: total,
+      },
       users,
       pagination: {
         total,
@@ -320,5 +324,55 @@ export class AdminService {
     });
 
     return chartData;
+  }
+
+  async changeOfferStatus(offerId: string, status?: OfferStatus) {
+    // Check if offer exists
+    const existingOffer = await this.prisma.offer.findUnique({
+      where: { id: offerId },
+    });
+
+    if (!existingOffer) {
+      throw new NotFoundException('Offer not found');
+    }
+
+    // If no status provided, return the offer as-is
+    if (!status) {
+      return existingOffer;
+    }
+
+    // Update the offer status
+    const updatedOffer = await this.prisma.offer.update({
+      where: { id: offerId },
+      data: { status },
+    });
+
+    return updatedOffer;
+  }
+
+  async adminRedeemedOfferStats() {
+    // 1️⃣ Total offers (not deleted)
+    const totalOffers = await this.prisma.offer.count({
+      where: { isDeleted: false },
+    });
+
+    // 2️⃣ Total active offers
+    const totalActiveOffers = await this.prisma.offer.count({
+      where: { isDeleted: false, status: 'ACTIVE' },
+    });
+
+    // 3️⃣ Total redemptions
+    const totalRedemptions = await this.prisma.offerRedemption.count();
+
+    // 4️⃣ Redemption rate = totalRedemptions / totalOffers
+    const redemptionRate =
+      totalOffers > 0 ? (totalRedemptions / totalOffers) * 100 : 0;
+
+    return {
+      totalOffers,
+      totalActiveOffers,
+      totalRedemptions,
+      redemptionRate: Number(redemptionRate.toFixed(2)), // rounded to 2 decimals
+    };
   }
 }
