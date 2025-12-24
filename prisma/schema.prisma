@@ -83,6 +83,8 @@ model Offer {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   metadata              Json?
+  estimatedValue        Int                    @default(0)
+  termsAndConditions    String?
   isDeleted             Boolean                @default(false)
   cooldownPeriod        Int?
   VendorProfile         VendorProfile          @relation(fields: [vendorId], references: [id], onDelete: Cascade)

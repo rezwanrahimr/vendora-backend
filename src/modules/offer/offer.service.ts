@@ -17,21 +17,18 @@ export class OfferService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createOffer(payload: CreateOfferDto) {
+    // Check if vendor exists
     const vendor = await this.prisma.vendorProfile.findUnique({
-      where: {
-        id: payload.vendorId.toString(),
-      },
+      where: { id: payload.vendorId.toString() },
     });
-
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
     }
 
-    // Parse and validate dates
+    // Parse dates
     const validFrom = payload.validFrom
       ? new Date(payload.validFrom)
       : new Date();
-
     const validUntil = new Date(payload.validUntil);
 
     if (validUntil <= validFrom) {
@@ -49,7 +46,7 @@ export class OfferService {
       );
     }
 
-    // Validate cooldownPeriod for reusable offers
+    // Validate cooldownPeriod if reusable
     if (
       payload.isReusable &&
       (payload.cooldownPeriod === undefined || payload.cooldownPeriod === null)
@@ -59,11 +56,11 @@ export class OfferService {
       );
     }
 
-    // Create offer
-    return await this.prisma.offer.create({
+    // Create the offer
+    return this.prisma.offer.create({
       data: {
-        title: payload.title?.trim(),
-        description: payload.description?.trim(),
+        title: payload.title.trim(),
+        description: payload.description.trim(),
         type: payload.type,
         vendorId: vendor.id,
         isReusable: payload.isReusable ?? false,
@@ -71,13 +68,18 @@ export class OfferService {
         cooldownPeriod: payload.cooldownPeriod ?? null,
         validFrom,
         validUntil,
-        status: 'ACTIVE',
+        status: OfferStatus.ACTIVE,
         isDeleted: false,
+        estimatedValue: payload.estimatedValue ?? 0,
+        termsAndConditions: payload.termsAndConditions?.trim() ?? null,
       },
     });
   }
 
-  async getOfferById(offerId: string) {
+  async getOfferById(offerId: string,userId?:string) {
+
+
+    
     return await this.prisma.offer.findUniqueOrThrow({
       where: { id: offerId },
       include: {
@@ -238,7 +240,6 @@ export class OfferService {
       data: { status: 'DELETED', isDeleted: true },
     });
   }
-
 
   async redeemOffer(payload: RedeemOfferDto) {
     const { offerId, customerEmail } = payload;

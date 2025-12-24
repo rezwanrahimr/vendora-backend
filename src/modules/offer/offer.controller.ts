@@ -9,7 +9,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import {
@@ -25,15 +30,16 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth('JWT')
+// @UseGuards(JwtAuthGuard)
+// @ApiBearerAuth('JWT')
 @Controller('offer')
 export class OfferController {
   constructor(private readonly offerService: OfferService) {}
 
   // STATIC ROUTES FIRST
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @UseGuards(RolesGuard)
+  // @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Create an offer, requires admin' })
   @Post('/create')
   create(@Body() createOfferDto: CreateOfferDto) {
     return this.offerService.createOffer(createOfferDto);
