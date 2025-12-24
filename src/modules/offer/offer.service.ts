@@ -132,6 +132,7 @@ export class OfferService {
       );
 
       if (usersToNotify.length === 0) {
+        console.log('No users to notify for new offer');
         return;
       }
 
@@ -144,8 +145,10 @@ export class OfferService {
             ? 'discount'
             : 'special';
 
-      // Send notifications to each user
-      await this.pushNotificationService.sendToMultipleUsers(
+      console.log(`Sending new offer notifications to ${usersToNotify.length} users`);
+
+      // Send notifications to each user (this will store in database)
+      const result = await this.pushNotificationService.sendToMultipleUsers(
         usersToNotify.map((u) => u.id),
         {
           title: 'New Offer Available!',
@@ -157,6 +160,10 @@ export class OfferService {
             screen: 'OfferDetail',
           },
         },
+      );
+
+      console.log(
+        `New offer notifications sent: ${result.successCount} successful, ${result.failureCount} failed`,
       );
     } catch (error) {
       console.error('Error in sendNewOfferNotifications:', error);
