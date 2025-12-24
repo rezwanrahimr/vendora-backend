@@ -43,7 +43,7 @@ export class VendorsService {
   }
 
   async updateVendorProfile(
-    userId: number,
+    userId: string,
     data: {
       businessName?: string;
       businessAddress?: string;

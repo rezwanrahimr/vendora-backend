@@ -442,6 +442,15 @@ export class OfferService {
       },
       orderBy: { createdAt: 'desc' },
       take: Number(limit),
+      include: {
+        VendorProfile: {
+          include: {
+            user: {
+              omit: { password: true },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -469,6 +478,15 @@ export class OfferService {
         },
       },
       take: Number(limit),
+      include: {
+        VendorProfile: {
+          include: {
+            user: {
+              omit: { password: true },
+            },
+          },
+        },
+      },
     });
   }
 }

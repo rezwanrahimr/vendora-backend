@@ -15,7 +15,14 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
-import { ApiOperation, ApiQuery, ApiSecurity } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiProperty,
+  ApiQuery,
+  ApiSecurity,
+} from '@nestjs/swagger';
 import { Response } from 'express';
 
 @Controller('vendors')
@@ -33,6 +40,7 @@ export class VendorsController {
   @Get('me')
   @UseGuards(RolesGuard)
   @Roles(UserRole.VENDOR) // Only vendors can access their own profile
+  @ApiOperation({ summary: 'Get current vendor profile' })
   getMyProfile(@CurrentUser() user: any) {
     return this.vendorsService.findOne(user.id);
   }
@@ -40,6 +48,21 @@ export class VendorsController {
   @Patch('me/profile')
   @UseGuards(RolesGuard)
   @Roles(UserRole.VENDOR) // Only vendors can update their own profile
+  @ApiOperation({ summary: 'Update current vendor profile' })
+  @ApiBody({
+    description: 'Fields that can be updated for the vendor profile',
+    schema: {
+      type: 'object',
+      properties: {
+        businessName: { type: 'string', example: 'My Business' },
+        businessAddress: { type: 'string', example: '123 Main St, City' },
+        phoneNumber: { type: 'string', example: '+1234567890' },
+        taxId: { type: 'string', example: 'TAX12345' },
+        description: { type: 'string', example: 'We sell quality products.' },
+      },
+      required: [],
+    },
+  })
   updateMyProfile(
     @CurrentUser() user: any,
     @Body()
@@ -57,8 +80,28 @@ export class VendorsController {
   @Patch(':id/profile')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN) // Only admins can update any vendor profile
+  @ApiOperation({ summary: 'Update any vendor profile (admin only)' })
+  @ApiParam({
+    name: 'id',
+    type: 'number',
+    description: 'Vendor user ID to update',
+  })
+  @ApiBody({
+    description: 'Fields that can be updated for a vendor profile',
+    schema: {
+      type: 'object',
+      properties: {
+        businessName: { type: 'string', example: 'My Business' },
+        businessAddress: { type: 'string', example: '123 Main St, City' },
+        phoneNumber: { type: 'string', example: '+1234567890' },
+        taxId: { type: 'string', example: 'TAX12345' },
+        description: { type: 'string', example: 'We sell quality products.' },
+      },
+      required: [],
+    },
+  })
   updateProfile(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body()
     updateData: {
       businessName?: string;
