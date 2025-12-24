@@ -9,7 +9,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import {
@@ -34,6 +39,7 @@ export class OfferController {
   // STATIC ROUTES FIRST
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Create an offer, requires admin' })
   @Post('/create')
   create(@Body() createOfferDto: CreateOfferDto) {
     return this.offerService.createOffer(createOfferDto);

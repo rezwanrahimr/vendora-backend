@@ -16,16 +16,16 @@ export class CreateOfferDto {
     example: 'Summer Sale',
     description: 'Title of the offer shown to users',
   })
-  // @IsString()
-  // @IsNotEmpty()
+  @IsString()
+  @IsNotEmpty()
   title: string;
 
   @ApiProperty({
     example: 'Get 20% off on all products until the end of summer',
     description: 'Detailed description of the offer',
   })
-  // @IsString()
-  // @IsNotEmpty()
+  @IsString()
+  @IsNotEmpty()
   description: string;
 
   @ApiPropertyOptional({
@@ -34,27 +34,27 @@ export class CreateOfferDto {
       'Whether the offer can be reused multiple times by the same user',
     default: false,
   })
-  // @IsOptional()
-  // @IsBoolean()
+  @IsOptional()
+  @IsBoolean()
   isReusable?: boolean;
 
   @ApiProperty({
     example: 'vendor-12345',
     description: 'ID of the vendor creating the offer',
   })
-  // @IsString()
-  // @IsNotEmpty()
+  @IsString()
+  @IsNotEmpty()
   vendorId: string;
 
   @ApiPropertyOptional({
     example: 100,
     description:
-      'Maximum number of times the offer can be redeemed (null means unlimited)',
+      'Maximum number of times the offer can be redeemed (leave empty for unlimited)',
     nullable: true,
   })
-  // @IsOptional()
-  // @IsInt()
-  // @Min(1)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
   maxRedemptions?: number | null;
 
   @ApiProperty({
@@ -66,9 +66,10 @@ export class CreateOfferDto {
 
   @ApiPropertyOptional({
     example: '2025-01-01T00:00:00.000Z',
-    description: 'Offer start date (ISO 8601 format)',
+    description:
+      'Offer start date (ISO 8601 format). Leave empty to start immediately.',
   })
-  // @IsOptional()
+  @IsOptional()
   validFrom?: string | Date;
 
   @ApiProperty({
@@ -79,12 +80,29 @@ export class CreateOfferDto {
 
   @ApiPropertyOptional({
     example: 30,
-    description: 'Cooldown period in days before the offer can be reused',
+    description:
+      'Cooldown period in days before the offer can be reused. Only applies if isReusable is true.',
   })
-  // @IsOptional()
-  // @IsInt()
-  // @Min(0)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
   cooldownPeriod?: number;
+
+  @ApiPropertyOptional({
+    example: 50,
+    description: 'Estimated value of the offer in the vendor’s currency',
+  })
+  @IsOptional()
+  @IsInt()
+  estimatedValue?: number;
+
+  @ApiPropertyOptional({
+    example: 'Terms and conditions for using this offer',
+    description: 'Optional terms and conditions text for this offer',
+  })
+  @IsOptional()
+  @IsString()
+  termsAndConditions?: string;
 }
 
 export class UpdateOfferStatusDto {
@@ -235,8 +253,6 @@ export class RedeemOfferDto {
   @IsNotEmpty()
   customerEmail: string;
 }
-
-
 
 export class GetOfferByCategoryIdDto {
   @ApiPropertyOptional({
