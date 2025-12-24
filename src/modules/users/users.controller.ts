@@ -36,6 +36,7 @@ import { FileSizeInterceptor } from '../../common/interceptors/file-size.interce
 import { UploadImageDto, ImageUploadResponseDto } from './dto/upload-image.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
+import { RegisterFcmTokenDto, RemoveFcmTokenDto } from '../notification/dto';
 
 @Controller('users')
 @ApiTags('Users')
@@ -117,5 +118,37 @@ export class UsersController {
   @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
   updateById(@Param('id') id: string, @Body() updateData: UpdateUserDto) {
     return this.usersService.updateUser(id, updateData);
+  }
+
+  @Post('fcm-token')
+  @ApiOperation({ summary: 'Register FCM token for push notifications' })
+  @ApiResponse({
+    status: 200,
+    description: 'FCM token registered successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid token data' })
+  async registerFcmToken(
+    @CurrentUser() user: any,
+    @Body() registerDto: RegisterFcmTokenDto,
+  ) {
+    return this.usersService.registerFcmToken(
+      user.id,
+      registerDto.token,
+      registerDto.platform,
+      registerDto.deviceId,
+    );
+  }
+
+  @Delete('fcm-token')
+  @ApiOperation({ summary: 'Remove FCM token' })
+  @ApiResponse({
+    status: 200,
+    description: 'FCM token removed successfully',
+  })
+  async removeFcmToken(
+    @CurrentUser() user: any,
+    @Body() removeDto: RemoveFcmTokenDto,
+  ) {
+    return this.usersService.removeFcmToken(user.id, removeDto.token);
   }
 }

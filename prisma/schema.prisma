@@ -22,10 +22,13 @@ model User {
   isEmailVerified        Boolean                @default(false)
   verificationCode       String?
   verificationCodeExpiry DateTime?
+  fcmTokens              Json?
+  lastActiveAt           DateTime?
   notifications          UserNotification[]
   vendorProfile          VendorProfile?
   offerRedemptions       OfferRedemption[]
   offerRedemptionEvents  OfferRedemptionEvent[]
+  pushNotifications      PushNotification[]
 }
 
 model UserNotification {
@@ -120,6 +123,25 @@ model OfferRedemptionEvent {
   @@index([offerId, redeemedAt])
 }
 
+model PushNotification {
+  id        String             @id @default(uuid())
+  userId    String
+  title     String
+  body      String
+  data      Json?
+  type      NotificationType
+  status    NotificationStatus @default(PENDING)
+  sentAt    DateTime?
+  readAt    DateTime?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, status])
+}
+
 model AdminLegal {
   id                 String @id @default("ADMIN_LEGAL_SINGLETON_ID")
   TermsAndConditions String
@@ -140,6 +162,21 @@ model AdminNotification {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum NotificationType {
+  NEW_OFFER
+  RENEWAL_REMINDER
+  PROMOTIONAL
+  VENDOR_APPROVED
+  SYSTEM
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
 }
 
 enum UserRole {
