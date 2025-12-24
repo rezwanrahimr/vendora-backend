@@ -90,8 +90,10 @@ export class OfferService {
       },
       include: {
         VendorProfile: {
-          select: {
-            businessName: true,
+          include: {
+            user: {
+              select: { id: true, email: true, name: true },
+            },
           },
         },
       },
@@ -216,7 +218,7 @@ export class OfferService {
         skip,
         take: limitNumber,
         orderBy: { [sortBy]: sortOrder },
-        include: { VendorProfile: true },
+        include: { VendorProfile: { include: { user: true } } },
       }),
       this.prisma.offer.count({ where }),
     ]);

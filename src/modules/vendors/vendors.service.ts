@@ -2,8 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { getDay, getHours } from 'date-fns';
 
-
-
 @Injectable()
 export class VendorsService {
   constructor(private prisma: PrismaService) {}
@@ -12,7 +10,11 @@ export class VendorsService {
     return this.prisma.user.findMany({
       where: { role: 'VENDOR' },
       include: {
-        vendorProfile: true,
+        vendorProfile: {
+          include: {
+            Category: true,
+          },
+        },
       },
     });
   }
@@ -24,7 +26,11 @@ export class VendorsService {
         role: 'VENDOR',
       },
       include: {
-        vendorProfile: true,
+        vendorProfile: {
+          include: {
+            Category: true,
+          },
+        },
       },
     });
 
@@ -193,8 +199,6 @@ export class VendorsService {
   //     },
   //   };
   // }
-
-
 
   async getVendorDashboard(
     userId: string,

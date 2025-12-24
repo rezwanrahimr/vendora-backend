@@ -13,6 +13,7 @@ import { CategoryModule } from './modules/category/category.module';
 import { AdminLegalModule } from './modules/admin-legal/admin-legal.module';
 import { AdminNotificationModule } from './modules/admin-notification/admin-notification.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { AdminGeneralModule } from './modules/admin-general/admin-general.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -31,6 +32,7 @@ import configuration from './config/configuration';
     AdminLegalModule,
     AdminNotificationModule,
     NotificationModule,
+    AdminGeneralModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
