@@ -90,6 +90,7 @@ model Offer {
   termsAndConditions    String?
   isDeleted             Boolean                @default(false)
   cooldownPeriod        Int?
+  thumbnail             String?                @default("")
   VendorProfile         VendorProfile          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   offerRedemptions      OfferRedemption[]
   offerRedemptionEvents OfferRedemptionEvent[]
@@ -164,16 +165,13 @@ model AdminNotification {
   updatedAt DateTime @updatedAt
 }
 
-
 model AdminGeneralSettings {
-  id                String @id @default("ADMIN_GENERAL_SETTINGS_SINGLETON_ID")
+  id                String  @id @default("ADMIN_GENERAL_SETTINGS_SINGLETON_ID")
   defaultVendorId   String?
   defaultCategoryId String?
 
-
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum NotificationType {

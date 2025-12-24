@@ -20,6 +20,14 @@ export class CreateOfferDto {
   @IsNotEmpty()
   title: string;
 
+  // 👇 ADD THIS
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'Offer image file',
+  })
+  image?: any;
+
   @ApiProperty({
     example: 'Get 20% off on all products until the end of summer',
     description: 'Detailed description of the offer',
