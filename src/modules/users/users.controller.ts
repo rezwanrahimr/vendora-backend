@@ -40,7 +40,7 @@ import { RegisterFcmTokenDto, RemoveFcmTokenDto } from '../notification/dto';
 
 @Controller('users')
 @ApiTags('Users')
-@ApiBearerAuth('JWT') 
+@ApiBearerAuth('JWT')
 @UseGuards(JwtAuthGuard) // All routes require authentication
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -115,7 +115,10 @@ export class UsersController {
   @ApiOperation({ summary: 'Update user by ID' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   updateById(@Param('id') id: string, @Body() updateData: UpdateUserDto) {
     return this.usersService.updateUser(id, updateData);
   }

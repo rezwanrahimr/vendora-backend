@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { getDay, getHours } from 'date-fns';
 
@@ -737,5 +741,22 @@ export class VendorsService {
     });
 
     return sections.join('\n');
+  }
+
+  async uploadLogo(userId: string, file?: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Please upload an image file');
+    }
+
+    const imageUrl = `/uploads/vendors/logos/${file.filename}`;
+
+    const vendor = await this.prisma.vendorProfile.findUniqueOrThrow({
+      where: { userId: userId.toString() },
+    });
+
+    return await this.prisma.vendorProfile.update({
+      where: { id: vendor.id },
+      data: { logoUrl: imageUrl },
+    });
   }
 }
