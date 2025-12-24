@@ -90,6 +90,7 @@ model Offer {
   termsAndConditions    String?
   isDeleted             Boolean                @default(false)
   cooldownPeriod        Int?
+  thumbnail             String?                @default("")
   VendorProfile         VendorProfile          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   offerRedemptions      OfferRedemption[]
   offerRedemptionEvents OfferRedemptionEvent[]
@@ -159,6 +160,15 @@ model AdminNotification {
   subscriptionRenewalReminders Boolean @default(true)
   enableEmailNotifications     Boolean @default(true)
   weeklyDigest                 Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AdminGeneralSettings {
+  id                String  @id @default("ADMIN_GENERAL_SETTINGS_SINGLETON_ID")
+  defaultVendorId   String?
+  defaultCategoryId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

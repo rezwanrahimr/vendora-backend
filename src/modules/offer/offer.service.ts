@@ -24,7 +24,13 @@ export class OfferService {
     private readonly pushNotificationService: PushNotificationService,
   ) {}
 
-  async createOffer(payload: CreateOfferDto) {
+  async createOffer(payload: CreateOfferDto, file?: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Image is required');
+    }
+
+    const imageUrl = `/uploads/category/images/${file.filename}`;
+
     // Check if vendor exists
     const vendor = await this.prisma.vendorProfile.findUnique({
       where: { id: payload.vendorId.toString() },
@@ -78,6 +84,7 @@ export class OfferService {
         validUntil,
         status: OfferStatus.ACTIVE,
         isDeleted: false,
+        thumbnail: imageUrl,
         termsAndConditions: payload.termsAndConditions?.trim(),
         estimatedValue: payload.estimatedValue ?? 0,
       },

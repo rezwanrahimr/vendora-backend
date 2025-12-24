@@ -7,10 +7,13 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -29,6 +32,12 @@ import { OfferService } from './offer.service';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { FileSizeInterceptor } from 'src/common/interceptors/file-size.interceptor';
+import {
+  imageFileFilter,
+  offerImageStorage,
+} from 'src/common/utils/file-upload.utils';
 
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT')
@@ -41,8 +50,19 @@ export class OfferController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create an offer, requires admin' })
   @Post('/create')
-  create(@Body() createOfferDto: CreateOfferDto) {
-    return this.offerService.createOffer(createOfferDto);
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: offerImageStorage,
+      fileFilter: imageFileFilter,
+    }),
+    FileSizeInterceptor,
+  )
+  create(
+    @Body() createOfferDto: CreateOfferDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.offerService.createOffer(createOfferDto, file);
   }
 
   @Get()

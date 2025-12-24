@@ -41,12 +41,22 @@ export const userImageStorage = diskStorage({
     createUploadDir(uploadPath);
     callback(null, uploadPath);
   },
+
   filename: editFileName,
 });
 
 export const categoryImageStorage = diskStorage({
   destination: (req: any, file: any, callback: any) => {
     const uploadPath = './uploads/category/images';
+    createUploadDir(uploadPath);
+    callback(null, uploadPath);
+  },
+  filename: editFileName,
+});
+
+export const offerImageStorage = diskStorage({
+  destination: (req: any, file: any, callback: any) => {
+    const uploadPath = './uploads/offer/images';
     createUploadDir(uploadPath);
     callback(null, uploadPath);
   },

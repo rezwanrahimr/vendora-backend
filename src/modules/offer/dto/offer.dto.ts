@@ -20,6 +20,14 @@ export class CreateOfferDto {
   @IsNotEmpty()
   title: string;
 
+  // 👇 ADD THIS
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'Offer image file',
+  })
+  image?: any;
+
   @ApiProperty({
     example: 'Get 20% off on all products until the end of summer',
     description: 'Detailed description of the offer',
@@ -36,6 +44,7 @@ export class CreateOfferDto {
   })
   @IsOptional()
   @IsBoolean()
+  @Type(() => Boolean)
   isReusable?: boolean;
 
   @ApiProperty({
@@ -55,6 +64,7 @@ export class CreateOfferDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Type(() => Number)
   maxRedemptions?: number | null;
 
   @ApiProperty({
@@ -86,6 +96,7 @@ export class CreateOfferDto {
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Type(() => Number)
   cooldownPeriod?: number;
 
   @ApiPropertyOptional({
@@ -94,6 +105,7 @@ export class CreateOfferDto {
   })
   @IsOptional()
   @IsInt()
+  @Type(() => Number)
   estimatedValue?: number;
 
   @ApiPropertyOptional({
@@ -144,6 +156,7 @@ export class GetOffersQueryDto {
   })
   @IsOptional()
   @IsBoolean()
+  @Type(() => Boolean)
   isReusable?: boolean;
 
   @ApiPropertyOptional({
@@ -162,6 +175,7 @@ export class GetOffersQueryDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Type(() => Number)
   page?: number;
 
   @ApiPropertyOptional({
@@ -172,6 +186,7 @@ export class GetOffersQueryDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Type(() => Number)
   limit?: number;
 
   @ApiPropertyOptional({
@@ -201,6 +216,7 @@ export class GetVendorOffersQueryDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Type(() => Number)
   page?: number;
 
   @ApiPropertyOptional({
@@ -211,6 +227,7 @@ export class GetVendorOffersQueryDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Type(() => Number)
   limit?: number;
 
   @ApiPropertyOptional({

@@ -1,7 +1,21 @@
-import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma.service';
-import { RegisterDto, RegisterVendorDto, LoginDto, VerifyEmailDto, SendResetCodeDto, VerifyResetCodeDto, ConfirmResetPasswordDto, ChangePasswordDto } from './dto';
+import {
+  RegisterDto,
+  RegisterVendorDto,
+  LoginDto,
+  VerifyEmailDto,
+  SendResetCodeDto,
+  VerifyResetCodeDto,
+  ConfirmResetPasswordDto,
+  ChangePasswordDto,
+} from './dto';
 import { EmailService } from './email.service';
 import { CacheService } from './cache.service';
 import { ResponseDto } from '../../common/dto/response.dto';
@@ -15,7 +29,7 @@ export class AuthService {
     private jwtService: JwtService,
     private emailService: EmailService,
     private cacheService: CacheService,
-  ) { }
+  ) {}
 
   async register(registerDto: RegisterDto) {
     const { email, password, role, name } = registerDto;
@@ -36,9 +50,7 @@ export class AuthService {
     const verificationCode = this.emailService.generateVerificationCode();
     const verificationCodeExpiry = this.emailService.getCodeExpiry();
 
-
     const user = await this.prisma.$transaction(async (tx) => {
-
       const newUser = await tx.user.create({
         data: {
           name,
@@ -66,13 +78,11 @@ export class AuthService {
           newOffer: true,
           renewalReminder: true,
           promotional: true,
-        }
+        },
       });
 
       return newUser;
-
-    })
-
+    });
 
     // Send verification email
     await this.emailService.sendVerificationEmail(email, verificationCode, '');
@@ -80,12 +90,13 @@ export class AuthService {
     return new ResponseDto(
       true,
       'User registered successfully. Please check your email for verification code.',
-      { user }
+      { user },
     );
   }
 
   async registerVendor(registerVendorDto: RegisterVendorDto) {
-    const { email, password, name, streetAddress, city, zipCode } = registerVendorDto;
+    const { email, password, name, streetAddress, city, zipCode, categoryId } =
+      registerVendorDto;
 
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
@@ -94,6 +105,14 @@ export class AuthService {
 
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
+    }
+
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+
+    if (!category) {
+      throw new BadRequestException('Category not found');
     }
 
     // Hash password
@@ -137,7 +156,7 @@ export class AuthService {
               streetAddress,
               city,
               zipCode,
-              categoryId: defaultCategoryId, // Default category, should be updated later
+              categoryId: category.id, // Default category, should be updated later
             },
           },
         },
@@ -158,22 +177,23 @@ export class AuthService {
           newOffer: true,
           renewalReminder: true,
           promotional: true,
-        }
+        },
       });
 
       return newUser;
-
-    })
-
-
+    });
 
     // Send verification email
-    await this.emailService.sendVerificationEmail(email, verificationCode, name || '');
+    await this.emailService.sendVerificationEmail(
+      email,
+      verificationCode,
+      name || '',
+    );
 
     return new ResponseDto(
       true,
       'Vendor registered successfully. Please check your email for verification code. Your account will be reviewed by admin.',
-      { user }
+      { user },
     );
   }
 
@@ -194,12 +214,16 @@ export class AuthService {
 
     // Check if email is verified
     if (!user.isEmailVerified) {
-      throw new UnauthorizedException('Please verify your email before logging in');
+      throw new UnauthorizedException(
+        'Please verify your email before logging in',
+      );
     }
 
     // Check if user status is active
     if (user.status !== 'ACTIVE') {
-      throw new UnauthorizedException('Account is not active. Please contact support.');
+      throw new UnauthorizedException(
+        'Account is not active. Please contact support.',
+      );
     }
 
     // Verify password
@@ -216,14 +240,10 @@ export class AuthService {
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
 
-    return new ResponseDto(
-      true,
-      'Login successful',
-      {
-        user: userWithoutPassword,
-        accessToken,
-      }
-    );
+    return new ResponseDto(true, 'Login successful', {
+      user: userWithoutPassword,
+      accessToken,
+    });
   }
 
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
@@ -251,8 +271,13 @@ export class AuthService {
     }
 
     // Check if code is expired
-    if (!user.verificationCodeExpiry || user.verificationCodeExpiry < new Date()) {
-      throw new BadRequestException('Verification code has expired. Please request a new one.');
+    if (
+      !user.verificationCodeExpiry ||
+      user.verificationCodeExpiry < new Date()
+    ) {
+      throw new BadRequestException(
+        'Verification code has expired. Please request a new one.',
+      );
     }
 
     // Update user as verified
@@ -269,20 +294,20 @@ export class AuthService {
     });
 
     // Generate JWT token
-    const payload = { sub: updatedUser.id, email: updatedUser.email, role: updatedUser.role };
+    const payload = {
+      sub: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+    };
     const accessToken = this.jwtService.sign(payload);
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = updatedUser;
 
-    return new ResponseDto(
-      true,
-      'Email verified successfully',
-      {
-        user: userWithoutPassword,
-        accessToken,
-      }
-    );
+    return new ResponseDto(true, 'Email verified successfully', {
+      user: userWithoutPassword,
+      accessToken,
+    });
   }
 
   // Step 1: Send verification code to email
@@ -299,7 +324,7 @@ export class AuthService {
       return new ResponseDto(
         false,
         'User with that email does not exist',
-        null
+        null,
       );
     }
 
@@ -310,13 +335,13 @@ export class AuthService {
     await this.cacheService.setResetCode(email, resetCode, 900);
 
     // Send reset code email
-    await this.emailService.sendPasswordResetEmail(email, resetCode, user.name || '');
-
-    return new ResponseDto(
-      false,
-      'User with that email does not exist',
-      null
+    await this.emailService.sendPasswordResetEmail(
+      email,
+      resetCode,
+      user.name || '',
     );
+
+    return new ResponseDto(false, 'User with that email does not exist', null);
   }
 
   // Step 2: Verify code and return short-lived token
@@ -336,7 +361,9 @@ export class AuthService {
     const storedCode = await this.cacheService.getResetCode(email);
 
     if (!storedCode) {
-      throw new BadRequestException('Verification code has expired or does not exist');
+      throw new BadRequestException(
+        'Verification code has expired or does not exist',
+      );
     }
 
     // Verify code matches
@@ -356,7 +383,7 @@ export class AuthService {
     return new ResponseDto(
       true,
       'Verification successful. Use the token to reset your password.',
-      { resetToken }
+      { resetToken },
     );
   }
 
@@ -397,7 +424,7 @@ export class AuthService {
     return new ResponseDto(
       true,
       'Password reset successfully. You can now login with your new password.',
-      null
+      null,
     );
   }
 
@@ -415,7 +442,10 @@ export class AuthService {
     }
 
     // Verify current password
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
 
     if (!isPasswordValid) {
       throw new BadRequestException('Current password is incorrect');
@@ -423,7 +453,9 @@ export class AuthService {
 
     // Check if new password is same as current
     if (currentPassword === newPassword) {
-      throw new BadRequestException('New password must be different from current password');
+      throw new BadRequestException(
+        'New password must be different from current password',
+      );
     }
 
     // Hash new password
@@ -437,11 +469,7 @@ export class AuthService {
       },
     });
 
-    return new ResponseDto(
-      true,
-      'Password changed successfully',
-      null
-    );
+    return new ResponseDto(true, 'Password changed successfully', null);
   }
 
   // Logout - blacklist token
@@ -454,20 +482,22 @@ export class AuthService {
 
       if (ttl > 0) {
         // Store token in blacklist cache until it expires
-        await this.cacheService.setResetToken(`blacklist:${token}`, String(userId), ttl);
+        await this.cacheService.setResetToken(
+          `blacklist:${token}`,
+          String(userId),
+          ttl,
+        );
       }
     }
 
-    return new ResponseDto(
-      true,
-      'Logged out successfully',
-      null
-    );
+    return new ResponseDto(true, 'Logged out successfully', null);
   }
 
   // Helper method to check if token is blacklisted
   async isTokenBlacklisted(token: string): Promise<boolean> {
-    const blacklisted = await this.cacheService.getEmailFromToken(`blacklist:${token}`);
+    const blacklisted = await this.cacheService.getEmailFromToken(
+      `blacklist:${token}`,
+    );
     return !!blacklisted;
   }
 }
