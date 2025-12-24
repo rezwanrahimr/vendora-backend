@@ -43,7 +43,7 @@ export class VendorsService {
   }
 
   async updateVendorProfile(
-    userId: number,
+    userId: string,
     data: {
       businessName?: string;
       businessAddress?: string;
@@ -67,7 +67,7 @@ export class VendorsService {
     });
   }
 
-  async verifyVendor(userId: number) {
+  async verifyVendor(userId: string) {
     const vendor = await this.prisma.user.findFirst({
       where: { id: userId.toString(), role: 'VENDOR' },
       include: { vendorProfile: true },
