@@ -19,7 +19,6 @@ import {
   ApiBody,
   ApiOperation,
   ApiParam,
-  ApiProperty,
   ApiQuery,
   ApiSecurity,
 } from '@nestjs/swagger';
@@ -117,7 +116,13 @@ export class VendorsController {
   @Patch(':id/verify')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN) // Only admins can verify vendors
-  verify(@Param('id', ParseIntPipe) id: number) {
+  @ApiOperation({ summary: 'Verify a vendor profile (admin only)' })
+  @ApiParam({
+    name: 'id',
+    type: 'number',
+    description: 'Vendor user ID to verify',
+  })
+  verify(@Param('id',) id: string) {
     return this.vendorsService.verifyVendor(id);
   }
 
