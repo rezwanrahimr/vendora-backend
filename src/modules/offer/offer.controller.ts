@@ -30,15 +30,15 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
-// @UseGuards(JwtAuthGuard)
-// @ApiBearerAuth('JWT')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth('JWT')
 @Controller('offer')
 export class OfferController {
   constructor(private readonly offerService: OfferService) {}
 
   // STATIC ROUTES FIRST
-  // @UseGuards(RolesGuard)
-  // @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create an offer, requires admin' })
   @Post('/create')
   create(@Body() createOfferDto: CreateOfferDto) {
