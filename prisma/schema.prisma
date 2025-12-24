@@ -166,9 +166,11 @@ model AdminNotification {
 }
 
 model AdminGeneralSettings {
-  id                String  @id @default("ADMIN_GENERAL_SETTINGS_SINGLETON_ID")
-  defaultVendorId   String?
-  defaultCategoryId String?
+  id                        String  @id @default("ADMIN_GENERAL_SETTINGS_SINGLETON_ID")
+  defaultLanguage           String? @default("en")
+  isUnderMaintenance        Boolean @default(false)
+  isAutoApproveForVendorOn  Boolean @default(false)
+  isNewVendorRegistrationOn Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

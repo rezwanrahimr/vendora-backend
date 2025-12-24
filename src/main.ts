@@ -26,8 +26,8 @@ async function bootstrap() {
     .setTitle(packageJson.name)
     .setDescription(packageJson.description)
     .setVersion(packageJson.version)
-    .addServer('http://localhost:3000')
-    .addServer('https://yasminaarsic-server.onrender.com')
+    // .addServer('http://localhost:3000')
+    // .addServer('https://yasminaarsic-server.onrender.com')
     .addBearerAuth(
       {
         type: 'http',

@@ -15,7 +15,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
-import { ApiQuery, ApiSecurity } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiSecurity } from '@nestjs/swagger';
 import { Response } from 'express';
 
 @Controller('vendors')
@@ -131,6 +131,7 @@ export class VendorsController {
     res.send(csv);
   }
 
+  @ApiOperation({ summary: 'Get a vendor by user ID' })
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.vendorsService.findOne(id);
