@@ -46,7 +46,7 @@ export class VendorsController {
 
   @Patch('me/profile')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.VENDOR) // Only vendors can update their own profile
+  @Roles(UserRole.VENDOR)
   @ApiOperation({ summary: 'Update current vendor profile' })
   @ApiBody({
     description: 'Fields that can be updated for the vendor profile',
@@ -54,10 +54,10 @@ export class VendorsController {
       type: 'object',
       properties: {
         businessName: { type: 'string', example: 'My Business' },
-        businessAddress: { type: 'string', example: '123 Main St, City' },
-        phoneNumber: { type: 'string', example: '+1234567890' },
-        taxId: { type: 'string', example: 'TAX12345' },
-        description: { type: 'string', example: 'We sell quality products.' },
+        contactEmail: { type: 'string', example: 'vendor@example.com' },
+        phone: { type: 'string', example: '+1234567890' },
+        streetAddress: { type: 'string', example: '123 Main St' },
+        city: { type: 'string', example: 'New York' },
       },
       required: [],
     },
@@ -67,10 +67,10 @@ export class VendorsController {
     @Body()
     updateData: {
       businessName?: string;
-      businessAddress?: string;
-      phoneNumber?: string;
-      taxId?: string;
-      description?: string;
+      contactEmail?: string;
+      phone?: string;
+      streetAddress?: string;
+      city?: string;
     },
   ) {
     return this.vendorsService.updateVendorProfile(user.id, updateData);
@@ -78,11 +78,11 @@ export class VendorsController {
 
   @Patch(':id/profile')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN) // Only admins can update any vendor profile
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update any vendor profile (admin only)' })
   @ApiParam({
     name: 'id',
-    type: 'number',
+    type: 'string',
     description: 'Vendor user ID to update',
   })
   @ApiBody({
@@ -91,10 +91,10 @@ export class VendorsController {
       type: 'object',
       properties: {
         businessName: { type: 'string', example: 'My Business' },
-        businessAddress: { type: 'string', example: '123 Main St, City' },
-        phoneNumber: { type: 'string', example: '+1234567890' },
-        taxId: { type: 'string', example: 'TAX12345' },
-        description: { type: 'string', example: 'We sell quality products.' },
+        contactEmail: { type: 'string', example: 'vendor@example.com' },
+        phone: { type: 'string', example: '+1234567890' },
+        streetAddress: { type: 'string', example: '123 Main St' },
+        city: { type: 'string', example: 'New York' },
       },
       required: [],
     },
@@ -104,10 +104,10 @@ export class VendorsController {
     @Body()
     updateData: {
       businessName?: string;
-      businessAddress?: string;
-      phoneNumber?: string;
-      taxId?: string;
-      description?: string;
+      contactEmail?: string;
+      phone?: string;
+      streetAddress?: string;
+      city?: string;
     },
   ) {
     return this.vendorsService.updateVendorProfile(id, updateData);
@@ -122,7 +122,7 @@ export class VendorsController {
     type: 'number',
     description: 'Vendor user ID to verify',
   })
-  verify(@Param('id',) id: string) {
+  verify(@Param('id') id: string) {
     return this.vendorsService.verifyVendor(id);
   }
 
