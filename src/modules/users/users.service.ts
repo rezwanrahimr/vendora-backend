@@ -5,6 +5,14 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
+import { SuccessResponse } from '../../common/dto/response.dto';
+
+interface FcmToken {
+  token: string;
+  platform: string;
+  deviceId?: string;
+  createdAt: string;
+}
 
 @Injectable()
 export class UsersService {
@@ -172,5 +180,83 @@ export class UsersService {
       where: { id: user.notifications[0].id },
       data,
     });
+  }
+
+  /**
+   * Register FCM token for push notifications
+   */
+  async registerFcmToken(
+    userId: string,
+    token: string,
+    platform: string,
+    deviceId?: string,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const existingTokens = (user.fcmTokens as unknown as FcmToken[]) || [];
+
+    // Check if token already exists
+    const tokenExists = existingTokens.some((t) => t.token === token);
+
+    if (!tokenExists) {
+      // Add new token
+      const newToken: FcmToken = {
+        token,
+        platform,
+        deviceId,
+        createdAt: new Date().toISOString(),
+      };
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          fcmTokens: [...existingTokens, newToken] as any,
+          lastActiveAt: new Date(),
+        },
+      });
+
+      return new SuccessResponse('FCM token registered successfully', {
+        registered: true,
+      });
+    }
+
+    // Update last active time even if token exists
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { lastActiveAt: new Date() },
+    });
+
+    return new SuccessResponse('FCM token already registered', {
+      registered: false,
+    });
+  }
+
+  /**
+   * Remove FCM token
+   */
+  async removeFcmToken(userId: string, token: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const existingTokens = (user.fcmTokens as unknown as FcmToken[]) || [];
+    const updatedTokens = existingTokens.filter((t) => t.token !== token);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { fcmTokens: updatedTokens as any },
+    });
+
+    return new SuccessResponse('FCM token removed successfully');
   }
 }

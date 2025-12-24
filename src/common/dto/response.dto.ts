@@ -12,3 +12,15 @@ export class ResponseDto<T> {
         this.data = data;
     }
 }
+
+export class SuccessResponse<T = any> {
+    success: boolean;
+    message: string;
+    data?: T;
+
+    constructor(message: string, data?: T) {
+        this.success = true;
+        this.message = message;
+        this.data = data;
+    }
+}

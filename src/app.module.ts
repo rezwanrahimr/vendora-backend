@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma.service';
@@ -11,9 +12,15 @@ import { OfferModule } from './modules/offer/offer.module';
 import { CategoryModule } from './modules/category/category.module';
 import { AdminLegalModule } from './modules/admin-legal/admin-legal.module';
 import { AdminNotificationModule } from './modules/admin-notification/admin-notification.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import configuration from './config/configuration';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      load: [configuration],
+      isGlobal: true,
+    }),
     AuthModule,
     UsersModule,
     VendorsModule,
@@ -23,6 +30,7 @@ import { AdminNotificationModule } from './modules/admin-notification/admin-noti
     CategoryModule,
     AdminLegalModule,
     AdminNotificationModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

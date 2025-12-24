@@ -2,6 +2,8 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import {
@@ -11,10 +13,16 @@ import {
   RedeemOfferDto,
 } from './dto/offer.dto';
 import { OfferStatus, Prisma } from '@prisma/client';
+import { PushNotificationService } from '../notification/push-notification.service';
+import { NotificationType } from '../notification/dto';
 
 @Injectable()
 export class OfferService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => PushNotificationService))
+    private readonly pushNotificationService: PushNotificationService,
+  ) {}
 
   async createOffer(payload: CreateOfferDto) {
     const vendor = await this.prisma.vendorProfile.findUnique({
@@ -60,7 +68,7 @@ export class OfferService {
     }
 
     // Create offer
-    return await this.prisma.offer.create({
+    const offer = await this.prisma.offer.create({
       data: {
         title: payload.title?.trim(),
         description: payload.description?.trim(),
@@ -74,7 +82,77 @@ export class OfferService {
         status: 'ACTIVE',
         isDeleted: false,
       },
+      include: {
+        VendorProfile: {
+          select: {
+            businessName: true,
+          },
+        },
+      },
     });
+
+    // Send push notifications to users (async, non-blocking)
+    this.sendNewOfferNotifications(offer).catch((error) => {
+      console.error('Failed to send new offer notifications:', error);
+    });
+
+    return offer;
+  }
+
+  /**
+   * Send push notifications for new offer (runs in background)
+   */
+  private async sendNewOfferNotifications(offer: any) {
+    try {
+      // Get all active users with notification preferences
+      const users = await this.prisma.user.findMany({
+        where: {
+          status: 'ACTIVE',
+          role: 'USER',
+        },
+        include: {
+          notifications: true,
+        },
+      });
+
+      // Filter users who have opted in for new offer notifications and have FCM tokens
+      const usersToNotify = users.filter(
+        (user) =>
+          user.fcmTokens &&
+          user.notifications.length > 0 &&
+          user.notifications[0].newOffer === true,
+      );
+
+      if (usersToNotify.length === 0) {
+        return;
+      }
+
+      const vendorName =
+        offer.VendorProfile?.businessName || 'a local business';
+      const offerTypeLabel =
+        offer.type === 'BOGO'
+          ? 'BOGO'
+          : offer.type === 'DISCOUNT'
+            ? 'discount'
+            : 'special';
+
+      // Send notifications to each user
+      await this.pushNotificationService.sendToMultipleUsers(
+        usersToNotify.map((u) => u.id),
+        {
+          title: 'New Offer Available!',
+          body: `Check out the new ${offerTypeLabel} offer from ${vendorName}`,
+          type: NotificationType.NEW_OFFER,
+          data: {
+            offerId: offer.id,
+            offerType: offer.type,
+            screen: 'OfferDetail',
+          },
+        },
+      );
+    } catch (error) {
+      console.error('Error in sendNewOfferNotifications:', error);
+    }
   }
 
   async getOfferById(offerId: string) {

@@ -11,4 +11,9 @@ export default () => ({
     password: process.env.EMAIL_PASSWORD,
     from: process.env.EMAIL_FROM || 'noreply@example.com',
   },
+  firebase: {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  },
 });
