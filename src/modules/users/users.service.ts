@@ -18,6 +18,24 @@ interface FcmToken {
 export class UsersService {
   constructor(private prisma: PrismaService) { }
 
+  /**
+   * Helper method to safely parse FCM tokens from JSON field
+   */
+  private parseFcmTokens(fcmTokensData: any): FcmToken[] {
+    if (!fcmTokensData) return [];
+    
+    if (Array.isArray(fcmTokensData)) {
+      return fcmTokensData as FcmToken[];
+    }
+    
+    // Handle case where it might be stored as a single object
+    if (typeof fcmTokensData === 'object' && fcmTokensData.token) {
+      return [fcmTokensData] as FcmToken[];
+    }
+    
+    return [];
+  }
+
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -199,7 +217,7 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    const existingTokens = (user.fcmTokens as unknown as FcmToken[]) || [];
+    const existingTokens = this.parseFcmTokens(user.fcmTokens);
 
     // Check if token already exists
     const tokenExists = existingTokens.some((t) => t.token === token);
@@ -249,7 +267,7 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    const existingTokens = (user.fcmTokens as unknown as FcmToken[]) || [];
+    const existingTokens = this.parseFcmTokens(user.fcmTokens);
     const updatedTokens = existingTokens.filter((t) => t.token !== token);
 
     await this.prisma.user.update({

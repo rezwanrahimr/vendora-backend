@@ -19,6 +19,15 @@ export class FirebaseService implements OnModuleInit {
         'FIREBASE_CLIENT_EMAIL',
       );
 
+      // Debug: Log loaded credentials (remove in production)
+      console.log('=== Firebase Configuration Debug ===');
+      console.log('Project ID:', projectId);
+      console.log('Client Email:', clientEmail);
+      console.log('Private Key exists:', !!privateKey);
+      console.log('Private Key length:', privateKey?.length);
+      console.log('Private Key starts with:', privateKey?.substring(0, 50));
+      console.log('====================================');
+
       if (!projectId || !privateKey || !clientEmail) {
         this.logger.warn(
           'Firebase credentials not configured. Push notifications will not work.',
@@ -34,7 +43,9 @@ export class FirebaseService implements OnModuleInit {
         }),
       });
 
-      this.logger.log('Firebase Admin SDK initialized successfully');
+      this.logger.log(
+        `Firebase Admin SDK initialized successfully for project: ${projectId}`,
+      );
     } catch (error) {
       this.logger.error('Failed to initialize Firebase Admin SDK', error);
     }
@@ -133,7 +144,7 @@ export class FirebaseService implements OnModuleInit {
         },
       };
 
-      const response = await messaging.sendMulticast(message);
+      const response = await messaging.sendEachForMulticast(message);
       
       const invalidTokens: string[] = [];
       response.responses.forEach((resp, idx) => {
@@ -153,6 +164,14 @@ export class FirebaseService implements OnModuleInit {
       };
     } catch (error) {
       this.logger.error('Failed to send multicast notification', error);
+      
+      // Check if it's a Firebase configuration error
+      if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+        this.logger.error(
+          'Firebase project not found. Please verify FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY in .env file.',
+        );
+      }
+      
       return { successCount: 0, failureCount: tokens.length, invalidTokens: [] };
     }
   }

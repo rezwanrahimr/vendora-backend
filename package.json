@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "seed": "ts-node src/database/seeds.ts",
+    "test-notifications": "ts-node src/scripts/test-notification-system.ts",
     "build": "prisma generate && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "node dist/src/main.js",
@@ -41,7 +42,7 @@
     "class-validator": "^0.14.3",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
-    "firebase-admin": "^12.7.0",
+    "firebase-admin": "^13.6.0",
     "json2csv": "6.0.0-alpha.2",
     "nodemailer": "^6.9.15",
     "passport": "^0.7.0",
