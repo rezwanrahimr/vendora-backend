@@ -9,10 +9,10 @@ export class UpdateUserDto {
   @IsString()
   name?: string;
 
-  @ApiProperty({ required: false, example: '+1234567890' })
-  @IsOptional()
-  @IsString()
-  phone?: string;
+  // @ApiProperty({ required: false, example: '+1234567890' })
+  // @IsOptional()
+  // @IsString()
+  // phone?: string;
 
   @ApiProperty({ required: false, example: 'New York, USA' })
   @IsOptional()

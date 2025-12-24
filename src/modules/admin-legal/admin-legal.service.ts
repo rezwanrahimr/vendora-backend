@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { AdminLegalDto } from './dto/admin-legal.dto';
 import { PrismaService } from 'src/prisma.service';
+import { PrivacyPolicyDto, TermsAndConditionsDto } from './dto/admin-legal.dto';
 
 @Injectable()
 export class AdminLegalService {
@@ -8,37 +8,36 @@ export class AdminLegalService {
 
   constructor(private prisma: PrismaService) {}
 
-  async updateAdminLegal(data: AdminLegalDto) {
-    const updateData: Partial<{
-      TermsAndConditions: string;
-      PrivacyPolicy: string;
-    }> = {};
+  async saveTermsAndConditions(payload: TermsAndConditionsDto) {
+    const data = payload.TermsAndConditions?.trim();
 
-    if (data.TermsAndConditions !== undefined) {
-      updateData.TermsAndConditions = data.TermsAndConditions;
-    }
+    // If nothing is provided, do nothing
+    if (data === undefined) return this.getAdminLegal();
 
-    if (data.PrivacyPolicy !== undefined) {
-      updateData.PrivacyPolicy = data.PrivacyPolicy;
-    }
-
-    await this.prisma.adminLegal.upsert({
+    return this.prisma.adminLegal.upsert({
       where: { id: this.SINGLETON_ID },
-      update: updateData,
+      update: { TermsAndConditions: data },
       create: {
-        TermsAndConditions: data.TermsAndConditions || '',
-        PrivacyPolicy: data.PrivacyPolicy || '',
+        id: this.SINGLETON_ID,
+        TermsAndConditions: data,
+        PrivacyPolicy: '',
       },
     });
+  }
 
-    return this.prisma.adminLegal.findUnique({
+  async savePrivacyPolicy(payload: PrivacyPolicyDto) {
+    const data = payload.PrivacyPolicy?.trim();
+
+    // If nothing is provided, do nothing
+    if (data === undefined) return this.getAdminLegal();
+
+    return this.prisma.adminLegal.upsert({
       where: { id: this.SINGLETON_ID },
-      select: {
-        id: true,
-        TermsAndConditions: true,
-        PrivacyPolicy: true,
-        createdAt: true,
-        updatedAt: true,
+      update: { PrivacyPolicy: data },
+      create: {
+        id: this.SINGLETON_ID,
+        PrivacyPolicy: data,
+        TermsAndConditions: '',
       },
     });
   }
