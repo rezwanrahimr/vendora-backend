@@ -13,18 +13,18 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // app.enableCors({
-  //   credentials: true,
-  //   origin: [
-  //     "*",
-  //     'http://localhost:5173',
-  //     'https://yasminaarsic-frontend-omega.vercel.app',
-  //   ],
-  // });
-
   app.enableCors({
-    origin: '*',
+    credentials: true,
+    origin: [
+      '*',
+      'http://localhost:5173',
+      'https://yasminaarsic-frontend-omega.vercel.app',
+    ],
   });
+
+  // app.enableCors({
+  //   origin: '*',
+  // });
 
   // Serve static files using express.static directly
   // __dirname is dist/src, so we need to go up two levels to reach project root

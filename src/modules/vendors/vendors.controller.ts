@@ -177,6 +177,7 @@ export class VendorsController {
   @Get('/my-offers')
   @UseGuards(RolesGuard)
   @Roles(UserRole.VENDOR)
+  @ApiOperation({ summary: 'Get my offers as a vendor' })
   getMyOffers(@CurrentUser() user: any) {
     return this.vendorsService.getAllMyOffers(user.id);
   }
