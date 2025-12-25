@@ -100,6 +100,7 @@ export class OfferController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.VENDOR)
   @Get('/quick-stats')
+  @ApiOperation({ summary: 'Get quick stats current vendor' })
   getQuickStatsForVendor(@CurrentUser() user: any) {
     return this.offerService.getQuickStatsForVendor(user.id);
   }

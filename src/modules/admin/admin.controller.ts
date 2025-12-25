@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Body,
+  Res,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,6 +27,7 @@ import {
   VendorUpdateDto,
 } from './dto/update-vendor.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { Response } from 'express';
 
 @ApiTags('Admin')
 @Controller('admin')
@@ -38,6 +40,49 @@ export class AdminController {
   @Get('/offer-redemption-stats')
   async adminRedeemedOfferStats() {
     return this.adminService.adminRedeemedOfferStats();
+  }
+
+  @Get('/offer-type-distribution')
+  async offerTypeDistribution() {
+    return this.adminService.offerTypeDistribution();
+  }
+
+  @Get('export-redemption-trends')
+  @ApiOperation({ summary: 'Export redemption trends to CSV' })
+  @ApiQuery({ name: 'year', required: false, type: Number, example: 2025 })
+  async exportRedemptionTrendsToCsv(
+    @Res() res: Response,
+    @Query('year') year?: number,
+  ) {
+    // 1️⃣ Generate CSV from service
+    const csv = await this.adminService.exportRedemptionTrendsToCsv(year);
+
+    // 2️⃣ Set response headers to trigger download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="redemption_trends_${year || 'all'}.csv"`,
+    );
+
+    // 3️⃣ Send CSV content
+    res.send(csv);
+  }
+
+  @Get('export-vendor-performance')
+  @ApiOperation({ summary: 'Export vendor performance to CSV' })
+  async exportVendorPerformanceToCsv(@Res() res: Response) {
+    // 1️⃣ Generate CSV from service
+    const csv = await this.adminService.exportVendorPerformanceToCsv();
+
+    // 2️⃣ Set response headers to trigger download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="vendor_performance.csv"',
+    );
+
+    // 3️⃣ Send CSV content
+    res.send(csv);
   }
 
   @Get('/top-performing-vendors')

@@ -187,14 +187,14 @@ export class VendorsController {
     name: 'from',
     type: String,
     required: false,
-    example: '2023-01-01',
+    example: '2025-01-01',
     description: 'Start date for the dashboard (YYYY-MM-DD)',
   })
   @ApiQuery({
     name: 'to',
     type: String,
     required: false,
-    example: '2023-12-31',
+    example: '2025-12-31',
     description: 'End date for the dashboard (YYYY-MM-DD)',
   })
   getVendorDashboard(
