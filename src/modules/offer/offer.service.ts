@@ -11,10 +11,13 @@ import {
   GetOffersQueryDto,
   GetVendorOffersQueryDto,
   RedeemOfferDto,
+  UpdateOfferDto,
 } from './dto/offer.dto';
 import { OfferStatus, Prisma } from '@prisma/client';
 import { PushNotificationService } from '../notification/push-notification.service';
 import { NotificationType } from '../notification/dto';
+import fs from 'fs';
+import path from 'path';
 
 @Injectable()
 export class OfferService {
@@ -145,7 +148,9 @@ export class OfferService {
             ? 'discount'
             : 'special';
 
-      console.log(`Sending new offer notifications to ${usersToNotify.length} users`);
+      console.log(
+        `Sending new offer notifications to ${usersToNotify.length} users`,
+      );
 
       // Send notifications to each user (this will store in database)
       const result = await this.pushNotificationService.sendToMultipleUsers(
@@ -303,16 +308,59 @@ export class OfferService {
     };
   }
 
-  async updateOffer(offerId: string, data: Partial<CreateOfferDto>) {
-    const existingOffer = await this.prisma.offer.findUnique({
+  async updateOffer(
+    offerId: string,
+    dto: UpdateOfferDto,
+    file?: Express.Multer.File,
+  ) {
+    // 1️⃣ Ensure offer exists
+    const offer = await this.prisma.offer.findUnique({
       where: { id: offerId },
     });
 
-    if (!existingOffer) {
+    if (!offer) {
       throw new NotFoundException(`Offer with ID ${offerId} not found`);
     }
 
-    return await this.prisma.offer.update({
+    // 2️⃣ Prepare update payload (remove undefined values)
+    const data: any = Object.fromEntries(
+      Object.entries(dto).filter(([, value]) => value !== undefined),
+    );
+
+    // 3️⃣ Handle image update (replace thumbnail)
+    if (file) {
+      // Delete old image if exists
+      if (offer.thumbnail) {
+        const oldImagePath = path.join(
+          process.cwd(),
+          offer.thumbnail.replace(/^\/+/, ''),
+        );
+
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+
+      // Save new image path
+      data.thumbnail = `/uploads/offer/images/${file.filename}`;
+    }
+
+    // 4️⃣ Date normalization
+    if (data.validFrom) {
+      data.validFrom = new Date(data.validFrom);
+    }
+
+    if (data.validUntil) {
+      data.validUntil = new Date(data.validUntil);
+    }
+
+    // 5️⃣ Business rule: cooldown requires reusable
+    if (data.cooldownPeriod !== undefined && data.isReusable === false) {
+      data.cooldownPeriod = null;
+    }
+
+    // 6️⃣ Persist update
+    return this.prisma.offer.update({
       where: { id: offerId },
       data,
     });

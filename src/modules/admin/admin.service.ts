@@ -375,4 +375,30 @@ export class AdminService {
       redemptionRate: Number(redemptionRate.toFixed(2)), // rounded to 2 decimals
     };
   }
+
+  async offerTypeDistribution() {
+    const [bogo, discount, special] = await Promise.all([
+      this.prisma.offer.count({ where: { type: 'BOGO' } }),
+      this.prisma.offer.count({ where: { type: 'DISCOUNT' } }),
+      this.prisma.offer.count({ where: { type: 'SPECIAL' } }),
+    ]);
+
+    const total = bogo + discount + special;
+
+    if (total === 0) {
+      return [
+        { label: 'BOGO', value: 0, count: 0 },
+        { label: 'DISCOUNT', value: 0, count: 0 },
+        { label: 'SPECIAL', value: 0, count: 0 },
+      ];
+    }
+
+    const pct = (n: number) => Number(((n / total) * 100).toFixed(2));
+
+    return [
+      { label: 'BOGO', value: pct(bogo), count: bogo },
+      { label: 'DISCOUNT', value: pct(discount), count: discount },
+      { label: 'SPECIAL', value: pct(special), count: special },
+    ];
+  }
 }

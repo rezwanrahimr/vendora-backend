@@ -13,9 +13,17 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // app.enableCors({
+  //   credentials: true,
+  //   origin: [
+  //     "*",
+  //     'http://localhost:5173',
+  //     'https://yasminaarsic-frontend-omega.vercel.app',
+  //   ],
+  // });
+
   app.enableCors({
-    credentials: true,
-    origin: ['http://localhost:5173'],
+    origin: '*',
   });
 
   // Serve static files using express.static directly

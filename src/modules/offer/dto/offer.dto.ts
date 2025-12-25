@@ -9,6 +9,7 @@ import {
   IsBoolean,
   IsInt,
   Min,
+  IsEnum,
 } from 'class-validator';
 
 export class CreateOfferDto {
@@ -290,4 +291,110 @@ export class GetOfferByCategoryIdDto {
   @IsInt()
   @Min(1)
   limit?: number;
+}
+
+export class UpdateOfferDto {
+  @ApiPropertyOptional({
+    example: 'Winter Sale',
+    description: 'Updated offer title',
+  })
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'Updated offer image file',
+  })
+  @IsOptional()
+  image?: any;
+
+  @ApiPropertyOptional({
+    example: 'Updated offer description',
+    description: 'Updated detailed description',
+  })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Whether the offer can be reused',
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  isReusable?: boolean;
+
+  @ApiPropertyOptional({
+    example: 200,
+    description: 'Maximum number of redemptions',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  maxRedemptions?: number | null;
+
+  @ApiPropertyOptional({
+    enum: OfferType,
+    description: 'Type of the offer',
+  })
+  @IsOptional()
+  @IsEnum(OfferType)
+  type?: OfferType;
+
+  @ApiPropertyOptional({
+    example: '2025-01-05T00:00:00.000Z',
+    description: 'Updated start date',
+  })
+  @IsOptional()
+  validFrom?: string | Date;
+
+  @ApiPropertyOptional({
+    example: '2025-02-01T23:59:59.000Z',
+    description: 'Updated expiration date',
+  })
+  @IsOptional()
+  validUntil?: string | Date;
+
+  @ApiPropertyOptional({
+    example: 14,
+    description: 'Cooldown period in days',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  cooldownPeriod?: number;
+
+  @ApiPropertyOptional({
+    example: 75,
+    description: 'Estimated value of the offer',
+  })
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  estimatedValue?: number;
+
+  @ApiPropertyOptional({
+    example: 'Updated terms and conditions',
+    description: 'Offer terms and conditions',
+  })
+  @IsOptional()
+  @IsString()
+  termsAndConditions?: string;
+
+  @ApiPropertyOptional({
+    enum: OfferStatus,
+    example: OfferStatus.ACTIVE,
+    description: 'Offer status',
+  })
+  @IsOptional()
+  @IsEnum(OfferStatus)
+  status?: OfferStatus;
+
+
 }
