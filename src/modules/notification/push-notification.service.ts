@@ -324,6 +324,26 @@ export class PushNotificationService {
   }
 
   /**
+   * Mark all notifications as read for a user
+   */
+  async markAllAsRead(userId: string): Promise<number> {
+    const result = await this.prisma.pushNotification.updateMany({
+      where: {
+        userId,
+        status: {
+          in: [NotificationStatus.PENDING, NotificationStatus.SENT],
+        },
+      },
+      data: {
+        status: NotificationStatus.READ,
+        readAt: new Date(),
+      },
+    });
+
+    return result.count;
+  }
+
+  /**
    * Get unread notification count
    */
   async getUnreadCount(userId: string): Promise<number> {

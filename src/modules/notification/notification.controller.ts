@@ -75,6 +75,20 @@ export class NotificationController {
     return new SuccessResponse('Notification marked as read successfully');
   }
 
+  @Patch('mark-all-read')
+  @ApiOperation({ summary: 'Mark all notifications as read' })
+  @ApiResponse({
+    status: 200,
+    description: 'All notifications marked as read successfully',
+  })
+  async markAllAsRead(@CurrentUser() user: any) {
+    const count = await this.pushNotificationService.markAllAsRead(user.id);
+    return new SuccessResponse(
+      'All notifications marked as read successfully',
+      { count },
+    );
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete notification' })
   @ApiResponse({
