@@ -496,7 +496,7 @@ export class OfferService {
       }
 
       if (offer.VendorProfile.userId !== vendorUserId) {
-        // throw new BadRequestException('Offer does not belong to you');
+        throw new BadRequestException('Offer does not belong to you');
       }
 
       if (offer.status !== 'ACTIVE') {

@@ -19,6 +19,7 @@ async function bootstrap() {
       '*',
       'http://localhost:5173',
       'https://yasminaarsic-frontend-omega.vercel.app',
+      'https://yasminaarsic-frontend.vercel.app',
     ],
   });
 
