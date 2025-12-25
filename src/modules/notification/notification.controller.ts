@@ -21,8 +21,8 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SuccessResponse } from '../../common/dto/response.dto';
 
 @ApiTags('Notifications')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@ApiBearerAuth('JWT')
+@UseGuards(JwtAuthGuard) // All routes require authentication
 @Controller('api/v1/notifications')
 export class NotificationController {
   constructor(
