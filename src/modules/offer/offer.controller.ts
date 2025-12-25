@@ -27,6 +27,7 @@ import {
   GetOffersQueryDto,
   GetVendorOffersQueryDto,
   RedeemOfferDto,
+  UpdateOfferDto,
   UpdateOfferStatusDto,
 } from './dto/offer.dto';
 import { OfferService } from './offer.service';
@@ -135,16 +136,37 @@ export class OfferController {
     return this.offerService.getOfferForVendor(vendorId, query);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update an offer, requires admin' })
   @Patch('/:id')
   @ApiParam({
     name: 'id',
     type: String,
-    description: 'The ID of the offer to update',
+    description: 'Offer ID to update',
   })
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  updateOffer(@Param('id') id: string, @Body() data: Partial<CreateOfferDto>) {
-    return this.offerService.updateOffer(id, data);
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: offerImageStorage,
+      fileFilter: imageFileFilter,
+    }),
+    FileSizeInterceptor,
+  )
+  @ApiResponse({
+    status: 200,
+    description: 'Offer updated successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Offer not found',
+  })
+  update(
+    @Param('id') id: string,
+    @Body() updateOfferDto: UpdateOfferDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.offerService.updateOffer(id, updateOfferDto, file);
   }
 
   @Delete('/:id')
