@@ -10,9 +10,52 @@ import { getDay, getHours } from 'date-fns';
 export class VendorsService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
+  // async findAll() {
+  //   return this.prisma.user.findMany({
+  //     where: { role: 'VENDOR' },
+  //     include: {
+  //       vendorProfile: {
+  //         include: {
+  //           Category: true,
+  //         },
+  //       },
+  //     },
+  //   });
+  // }
+
+  async findAll(params?: { search?: string; page?: number; limit?: number }) {
+    const search = params?.search;
+    const page = params?.page ?? 1;
+    const limit = params?.limit ?? 10;
+
+    const skip = (page - 1) * limit;
+
     return this.prisma.user.findMany({
-      where: { role: 'VENDOR' },
+      where: {
+        role: 'VENDOR',
+        ...(search && {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+            {
+              vendorProfile: {
+                OR: [
+                  { businessName: { contains: search, mode: 'insensitive' } },
+                  { city: { contains: search, mode: 'insensitive' } },
+                  {
+                    Category: {
+                      name: { contains: search, mode: 'insensitive' },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
       include: {
         vendorProfile: {
           include: {

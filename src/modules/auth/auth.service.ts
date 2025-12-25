@@ -95,8 +95,16 @@ export class AuthService {
   }
 
   async registerVendor(registerVendorDto: RegisterVendorDto) {
-    const { email, password, name, streetAddress, city, zipCode, categoryId } =
-      registerVendorDto;
+    const {
+      email,
+      password,
+      name,
+      streetAddress,
+      city,
+      zipCode,
+      categoryId,
+      businessName,
+    } = registerVendorDto;
 
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
@@ -126,20 +134,20 @@ export class AuthService {
 
     const user = await this.prisma.$transaction(async (tx) => {
       // Ensure default category exists
-      const defaultCategoryId = '00000000-0000-0000-0000-000000000000';
-      let defaultCategory = await tx.category.findUnique({
-        where: { id: defaultCategoryId },
-      });
+      // const defaultCategoryId = '00000000-0000-0000-0000-000000000000';
+      // let defaultCategory = await tx.category.findUnique({
+      //   where: { id: defaultCategoryId },
+      // });
 
-      if (!defaultCategory) {
-        defaultCategory = await tx.category.create({
-          data: {
-            id: defaultCategoryId,
-            name: 'General',
-            icon: '🏪',
-          },
-        });
-      }
+      // if (!defaultCategory) {
+      //   defaultCategory = await tx.category.create({
+      //     data: {
+      //       id: defaultCategoryId,
+      //       name: 'General',
+      //       icon: '🏪',
+      //     },
+      //   });
+      // }
 
       const newUser = await tx.user.create({
         data: {
@@ -154,6 +162,7 @@ export class AuthService {
           vendorProfile: {
             create: {
               streetAddress,
+              businessName: businessName || '',
               city,
               zipCode,
               categoryId: category.id, // Default category, should be updated later

@@ -93,8 +93,8 @@ export class OfferController {
   }
 
   @Post('/redeem')
-  redeemOffer(@Body() payload: RedeemOfferDto) {
-    return this.offerService.redeemOffer(payload);
+  redeemOffer(@Body() payload: RedeemOfferDto, @CurrentUser() user: any) {
+    return this.offerService.redeemOffer(payload, user.id);
   }
 
   @UseGuards(RolesGuard)

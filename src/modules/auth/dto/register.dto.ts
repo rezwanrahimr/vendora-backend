@@ -28,4 +28,6 @@ export class RegisterVendorDto extends RegisterDto {
   zipCode: string;
   @ApiProperty({ description: 'Category ID', example: 'category-123' })
   categoryId: string;
+  @ApiPropertyOptional({ description: 'Business name', example: 'Acme Inc' })
+  businessName?: string;
 }
