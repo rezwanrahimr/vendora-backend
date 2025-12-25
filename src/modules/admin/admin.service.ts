@@ -4,6 +4,7 @@ import { EmailService } from '../auth/email.service';
 import { VendorUpdateDto } from './dto/update-vendor.dto';
 import { format, getMonth } from 'date-fns';
 import { OfferStatus } from '@prisma/client';
+import { Parser } from 'json2csv';
 
 @Injectable()
 export class AdminService {
@@ -255,6 +256,30 @@ export class AdminService {
     return { message: 'Vendor deleted successfully' };
   }
 
+  async changeOfferStatus(offerId: string, status?: OfferStatus) {
+    // Check if offer exists
+    const existingOffer = await this.prisma.offer.findUnique({
+      where: { id: offerId },
+    });
+
+    if (!existingOffer) {
+      throw new NotFoundException('Offer not found');
+    }
+
+    // If no status provided, return the offer as-is
+    if (!status) {
+      return existingOffer;
+    }
+
+    // Update the offer status
+    const updatedOffer = await this.prisma.offer.update({
+      where: { id: offerId },
+      data: { status },
+    });
+
+    return updatedOffer;
+  }
+
   async getTopPerformingVendors() {
     // 1️⃣ Aggregate offers by vendorId using Prisma's aggregate on Offer
     const vendorsAgg = await this.prisma.offer.groupBy({
@@ -326,30 +351,6 @@ export class AdminService {
     return chartData;
   }
 
-  async changeOfferStatus(offerId: string, status?: OfferStatus) {
-    // Check if offer exists
-    const existingOffer = await this.prisma.offer.findUnique({
-      where: { id: offerId },
-    });
-
-    if (!existingOffer) {
-      throw new NotFoundException('Offer not found');
-    }
-
-    // If no status provided, return the offer as-is
-    if (!status) {
-      return existingOffer;
-    }
-
-    // Update the offer status
-    const updatedOffer = await this.prisma.offer.update({
-      where: { id: offerId },
-      data: { status },
-    });
-
-    return updatedOffer;
-  }
-
   async adminRedeemedOfferStats() {
     // 1️⃣ Total offers (not deleted)
     const totalOffers = await this.prisma.offer.count({
@@ -400,5 +401,52 @@ export class AdminService {
       { label: 'DISCOUNT', value: pct(discount), count: discount },
       { label: 'SPECIAL', value: pct(special), count: special },
     ];
+  }
+
+  async exportRedemptionTrendsToCsv(year?: number): Promise<string> {
+    // 1️⃣ Fetch redemption chart data
+    const data = await this.offerRedeemChart(year);
+
+    // 2️⃣ Define CSV fields
+    const fields = [
+      { label: 'Month', value: 'monthName' },
+      { label: 'Redemptions', value: 'totalRedemptions' },
+    ];
+
+    // 3️⃣ Generate CSV content for the data
+    const parser = new Parser({ fields });
+    const csvData = parser.parse(data);
+
+    // 4️⃣ Add custom header row
+    const header = year
+      ? `Redemption Trends for ${year}`
+      : `Redemption Trends for ${new Date().getFullYear()}`;
+    const csv = `${header}\n\n${csvData}`; // double newline for separation
+
+    return csv;
+  }
+
+  async exportVendorPerformanceToCsv(): Promise<string> {
+    // 1️⃣ Fetch top-performing vendors
+    const data = await this.getTopPerformingVendors();
+
+    // 2️⃣ Define CSV fields
+    const fields = [
+      { label: 'Vendor ID', value: 'vendorId' },
+      { label: 'Vendor Name', value: 'vendorName' },
+      { label: 'Total Offers', value: 'totalOffers' },
+      { label: 'Total Redeemed', value: 'totalRedeemed' },
+      { label: 'Redemption Ratio (%)', value: 'redemptionRatio' },
+    ];
+
+    // 3️⃣ Generate CSV content
+    const parser = new Parser({ fields });
+    const csvData = parser.parse(data);
+
+    // 4️⃣ Optional header row
+    const header = 'Top Performing Vendors';
+    const csv = `${header}\n\n${csvData}`;
+
+    return csv;
   }
 }
