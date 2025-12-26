@@ -69,6 +69,54 @@ export class AdminService {
     };
   }
 
+  // async allUsers(search?: string, page: number = 1, limit: number = 10) {
+  //   const skip = (page - 1) * limit;
+
+  //   // Build the where condition
+  //   const where: any = {
+  //     role: 'USER',
+  //   };
+  //   if (search) {
+  //     where.OR = [
+  //       { email: { contains: search, mode: 'insensitive' } },
+  //       { name: { contains: search, mode: 'insensitive' } },
+  //     ];
+  //   }
+
+  //   // Get total count for pagination
+  //   const total = await this.prisma.user.count({ where });
+
+  //   // Get paginated users
+  //   const users = await this.prisma.user.findMany({
+  //     where,
+  //     select: {
+  //       id: true,
+  //       name: true,
+  //       email: true,
+  //       phone: true,
+  //       role: true,
+  //       status: true,
+  //       createdAt: true,
+  //     },
+  //     skip,
+  //     take: limit,
+  //     orderBy: { createdAt: 'desc' },
+  //   });
+
+  //   return {
+  //     statistics: {
+  //       totalUsers: total,
+  //     },
+  //     users,
+  //     pagination: {
+  //       total,
+  //       page,
+  //       limit,
+  //       pages: Math.ceil(total / limit),
+  //     },
+  //   };
+  // }
+
   async allUsers(search?: string, page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
 
@@ -86,7 +134,7 @@ export class AdminService {
     // Get total count for pagination
     const total = await this.prisma.user.count({ where });
 
-    // Get paginated users
+    // Get paginated users with redeem count
     const users = await this.prisma.user.findMany({
       where,
       select: {
@@ -97,17 +145,26 @@ export class AdminService {
         role: true,
         status: true,
         createdAt: true,
+        _count: {
+          select: { offerRedemptions: true }, // count of redeemed offers
+        },
       },
       skip,
       take: limit,
       orderBy: { createdAt: 'desc' },
     });
 
+    // Format users with redeem count
+    const formattedUsers = users.map((user) => ({
+      ...user,
+      redeemedOfferCount: user._count.offerRedemptions,
+    }));
+
     return {
       statistics: {
         totalUsers: total,
       },
-      users,
+      users: formattedUsers,
       pagination: {
         total,
         page,

@@ -37,6 +37,7 @@ import {
   vendorLogoStorage,
 } from 'src/common/utils/file-upload.utils';
 import { FileSizeInterceptor } from 'src/common/interceptors/file-size.interceptor';
+import { UpdateVendorProfileDto } from './vendor.dto';
 
 @Controller('vendors')
 @ApiSecurity('JWT') // Apply JWT security scheme to all endpoints in this controller
@@ -130,30 +131,10 @@ export class VendorsController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.VENDOR)
   @ApiOperation({ summary: 'Update current vendor profile' })
-  @ApiBody({
-    description: 'Fields that can be updated for the vendor profile',
-    schema: {
-      type: 'object',
-      properties: {
-        businessName: { type: 'string', example: 'My Business' },
-        contactEmail: { type: 'string', example: 'vendor@example.com' },
-        phone: { type: 'string', example: '+1234567890' },
-        streetAddress: { type: 'string', example: '123 Main St' },
-        city: { type: 'string', example: 'New York' },
-      },
-      required: [],
-    },
-  })
+  @ApiBody({ type: UpdateVendorProfileDto })
   updateMyProfile(
     @CurrentUser() user: any,
-    @Body()
-    updateData: {
-      businessName?: string;
-      contactEmail?: string;
-      phone?: string;
-      streetAddress?: string;
-      city?: string;
-    },
+    @Body() updateData: UpdateVendorProfileDto,
   ) {
     return this.vendorsService.updateVendorProfile(user.id, updateData);
   }
@@ -167,30 +148,10 @@ export class VendorsController {
     type: 'string',
     description: 'Vendor user ID to update',
   })
-  @ApiBody({
-    description: 'Fields that can be updated for a vendor profile',
-    schema: {
-      type: 'object',
-      properties: {
-        businessName: { type: 'string', example: 'My Business' },
-        contactEmail: { type: 'string', example: 'vendor@example.com' },
-        phone: { type: 'string', example: '+1234567890' },
-        streetAddress: { type: 'string', example: '123 Main St' },
-        city: { type: 'string', example: 'New York' },
-      },
-      required: [],
-    },
-  })
+  @ApiBody({ type: UpdateVendorProfileDto })
   updateProfile(
     @Param('id') id: string,
-    @Body()
-    updateData: {
-      businessName?: string;
-      contactEmail?: string;
-      phone?: string;
-      streetAddress?: string;
-      city?: string;
-    },
+    @Body() updateData: UpdateVendorProfileDto,
   ) {
     return this.vendorsService.updateVendorProfile(id, updateData);
   }
