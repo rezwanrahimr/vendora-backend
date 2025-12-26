@@ -256,7 +256,7 @@ export class AdminService {
   async approvedVendor(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user || user.role !== 'VENDOR') {
-      throw new Error('Vendor not found');
+      throw new NotFoundException('Vendor not found');
     }
 
     await this.prisma.user.update({
@@ -357,7 +357,7 @@ export class AdminService {
     });
 
     if (!user || user.role !== 'VENDOR') {
-      throw new Error('Vendor not found');
+      throw new NotFoundException('Vendor not found');
     }
 
     // Delete user (cascade will delete vendor profile and offers)
