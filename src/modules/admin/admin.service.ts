@@ -1,7 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { EmailService } from '../auth/email.service';
-import { VendorUpdateDto } from './dto/update-vendor.dto';
+import {
+  UpdateVendorProfileDto,
+  VendorUpdateDto,
+} from './dto/update-vendor.dto';
 import { format, getMonth } from 'date-fns';
 import { OfferStatus } from '@prisma/client';
 import { Parser } from 'json2csv';
@@ -201,18 +208,20 @@ export class AdminService {
     // Get paginated users
     const users = await this.prisma.user.findMany({
       where,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-        status: true,
+      omit: {
+        password: true,
         createdAt: true,
+        updatedAt: true,
+        verificationCode: true,
+        verificationCodeExpiry: true,
+        fcmTokens: true,
       },
       skip,
       take: limit,
       orderBy: { createdAt: 'desc' },
+      include: {
+        vendorProfile: true,
+      },
     });
 
     // Transform data to include offers count
@@ -270,28 +279,74 @@ export class AdminService {
     return { message: 'Vendor approved successfully' };
   }
 
-  async updateVendor(id: string, updateData: VendorUpdateDto) {
-    // Check if user exists and is a vendor
-    const user = await this.prisma.user.findUnique({
+  async updateVendor(id: string, updateData: UpdateVendorProfileDto) {
+    // Find vendor profile first
+    const vendor = await this.prisma.vendorProfile.findUnique({
       where: { id },
-      include: { vendorProfile: true },
+      include: { user: true },
     });
 
-    if (!user || user.role !== 'VENDOR') {
-      throw new Error('Vendor not found');
+    if (!vendor) throw new NotFoundException('Vendor not found');
+
+    // Check for unique phone if phone is updated
+    if (updateData.phone) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { phone: updateData.phone },
+      });
+      // Throw only if phone belongs to a different user
+      if (existingUser && existingUser.id !== vendor.user.id) {
+        throw new BadRequestException('Phone number already in use');
+      }
     }
 
-    if (!user.vendorProfile) {
-      throw new Error('Vendor profile not found');
-    }
+    // Prepare update data
+    const vendorFields: Partial<UpdateVendorProfileDto> = {};
+    const userFields: Partial<UpdateVendorProfileDto> = {};
 
-    // Update vendor profile
-    const vendorProfile = await this.prisma.vendorProfile.update({
-      where: { userId: id },
-      data: updateData,
+    Object.keys(updateData).forEach((key) => {
+      const value = updateData[key as keyof UpdateVendorProfileDto];
+      if (value !== undefined) {
+        if (
+          [
+            'businessName',
+            'streetAddress',
+            'city',
+            'zipCode',
+            'categoryId',
+            'logoUrl',
+            'contactEmail',
+          ].includes(key)
+        ) {
+          vendorFields[key as keyof UpdateVendorProfileDto] = value;
+        } else if (key === 'phone') {
+          userFields[key as keyof UpdateVendorProfileDto] = value;
+        }
+      }
     });
 
-    return { message: 'Vendor updated successfully', vendorProfile };
+    // Run updates in a proper transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      const updatedVendor = await tx.vendorProfile.update({
+        where: { id },
+        data: vendorFields,
+      });
+
+      let updatedUser = vendor.user;
+      if (Object.keys(userFields).length > 0) {
+        updatedUser = await tx.user.update({
+          where: { id: vendor.user.id },
+          data: userFields,
+        });
+      }
+
+      return { updatedVendor, updatedUser };
+    });
+
+    return {
+      message: 'Vendor updated successfully',
+      vendor: result.updatedVendor,
+      user: result.updatedUser,
+    };
   }
 
   async deleteVendor(id: string) {

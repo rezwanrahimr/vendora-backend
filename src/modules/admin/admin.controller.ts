@@ -24,6 +24,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
 import {
   ChangeVendorStatusDto,
+  UpdateVendorProfileDto,
   VendorUpdateDto,
 } from './dto/update-vendor.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -205,9 +206,9 @@ export class AdminController {
   }
 
   @Patch('vendor/:id')
-  @ApiOperation({ summary: 'Update vendor status by ID' })
+  @ApiOperation({ summary: 'Update a vendor by ID' })
   @ApiResponse({ status: 200, description: 'vendor update successfully' })
-  updateVendor(@Param('id') id: string, @Body() updateData: VendorUpdateDto) {
+  updateVendor(@Param('id') id: string, @Body() updateData: UpdateVendorProfileDto) {
     return this.adminService.updateVendor(id, updateData);
   }
 
