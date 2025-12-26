@@ -141,6 +141,14 @@ export class AdminService {
     // Get total count for pagination
     const total = await this.prisma.user.count({ where });
 
+    const totalUsers = await this.prisma.user.count({
+      where: { role: 'USER' },
+    });
+
+    const totalSuspended = await this.prisma.user.count({
+      where: { status: 'SUSPENDED' },
+    });
+
     // Get paginated users with redeem count
     const users = await this.prisma.user.findMany({
       where,
@@ -169,7 +177,8 @@ export class AdminService {
 
     return {
       statistics: {
-        totalUsers: total,
+        totalUsers,
+        suspendedUsers: totalSuspended,
       },
       users: formattedUsers,
       pagination: {
