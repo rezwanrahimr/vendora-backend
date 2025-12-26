@@ -43,8 +43,14 @@ export class AdminLegalService {
   }
 
   async getAdminLegal() {
-    const legal = await this.prisma.adminLegal.findUnique({
+    return this.prisma.adminLegal.upsert({
       where: { id: this.SINGLETON_ID },
+      update: {},
+      create: {
+        id: this.SINGLETON_ID,
+        TermsAndConditions: 'Terms and Conditions',
+        PrivacyPolicy: 'Privacy Policy',
+      },
       select: {
         id: true,
         TermsAndConditions: true,
@@ -53,11 +59,5 @@ export class AdminLegalService {
         updatedAt: true,
       },
     });
-
-    if (!legal) {
-      throw new NotFoundException('Admin legal data not found');
-    }
-
-    return legal;
   }
 }

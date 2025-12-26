@@ -19,7 +19,7 @@ export class AdminLegalController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth("JWT")
+  @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Get current admin legal content' })
   @ApiResponse({
     status: 200,
@@ -32,7 +32,7 @@ export class AdminLegalController {
   @Patch('/terms')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiBearerAuth("JWT")
+  @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Update Terms and Conditions (Admin only)' })
   @ApiResponse({
     status: 200,
@@ -46,7 +46,7 @@ export class AdminLegalController {
   @Patch('/privacy')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiBearerAuth("JWT")
+  @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Update Privacy Policy (Admin only)' })
   @ApiResponse({
     status: 200,
