@@ -17,6 +17,7 @@ import {
   ChangePasswordDto,
 } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -82,10 +83,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Change password for authenticated user' })
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
   async changePassword(
-    @Request() req,
+    @CurrentUser() user:any,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
-    return this.authService.changePassword(req.user.sub, changePasswordDto);
+    return this.authService.changePassword(user.id, changePasswordDto);
   }
 
   @Post('logout')
