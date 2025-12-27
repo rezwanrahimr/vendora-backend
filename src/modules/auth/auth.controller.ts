@@ -15,6 +15,7 @@ import {
   VerifyResetCodeDto,
   ConfirmResetPasswordDto,
   ChangePasswordDto,
+  LoginWithGoogleDto,
 } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -44,6 +45,13 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Login successful' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post('login/google')
+  @ApiOperation({ summary: 'Login with Google' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  async loginWithGoogle(@Body() loginWithGoogleDto: LoginWithGoogleDto) {
+    return this.authService.loginWithGoogle(loginWithGoogleDto);
   }
 
   @Post('password-reset/send-code')
@@ -83,7 +91,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Change password for authenticated user' })
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
   async changePassword(
-    @CurrentUser() user:any,
+    @CurrentUser() user: any,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
     return this.authService.changePassword(user.id, changePasswordDto);
