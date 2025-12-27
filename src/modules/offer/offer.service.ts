@@ -28,9 +28,6 @@ export class OfferService {
   ) {}
 
   async createOffer(payload: CreateOfferDto, file?: Express.Multer.File) {
-
-    console.log("🚀 ~ offer.service.ts:32 ~ OfferService ~ createOffer ~ payload:", payload)
-
     if (!file) {
       throw new BadRequestException('Image is required');
     }
@@ -201,7 +198,11 @@ export class OfferService {
     const sortOrder = query.sortOrder || 'desc';
 
     // Build where clause
-    const where: Prisma.OfferWhereInput = {};
+    const where: Prisma.OfferWhereInput = {
+      isDeleted: false,
+      status: { not: 'DELETED' },
+    };
+    
     if (query.status) where.status = query.status;
     if (query.type) where.type = query.type;
     if (query.vendorId) where.vendorId = query.vendorId;

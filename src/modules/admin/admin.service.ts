@@ -10,7 +10,7 @@ import {
   VendorUpdateDto,
 } from './dto/update-vendor.dto';
 import { format, getMonth } from 'date-fns';
-import { OfferStatus } from '@prisma/client';
+import { OfferStatus, UserStatus } from '@prisma/client';
 import { Parser } from 'json2csv';
 
 @Injectable()
@@ -142,7 +142,9 @@ export class AdminService {
     const total = await this.prisma.user.count({ where });
 
     const totalUsers = await this.prisma.user.count({
-      where: { role: 'USER' },
+      where: {
+        role: 'USER',
+      },
     });
 
     const totalSuspended = await this.prisma.user.count({
