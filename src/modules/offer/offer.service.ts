@@ -28,6 +28,9 @@ export class OfferService {
   ) {}
 
   async createOffer(payload: CreateOfferDto, file?: Express.Multer.File) {
+
+    console.log("🚀 ~ offer.service.ts:32 ~ OfferService ~ createOffer ~ payload:", payload)
+
     if (!file) {
       throw new BadRequestException('Image is required');
     }

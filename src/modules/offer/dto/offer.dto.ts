@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { OfferStatus, OfferType } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
@@ -11,6 +11,13 @@ import {
   Min,
   IsEnum,
 } from 'class-validator';
+
+export const ToBoolean = () =>
+  Transform(({ value }) => {
+    if (value === true || value === 'true' || value === '1') return true;
+    if (value === false || value === 'false' || value === '0') return false;
+    return undefined; // return undefined for invalid input so class-validator can handle it
+  });
 
 export class CreateOfferDto {
   @ApiProperty({
@@ -45,7 +52,7 @@ export class CreateOfferDto {
   })
   @IsOptional()
   @IsBoolean()
-  @Type(() => Boolean)
+  @ToBoolean()
   isReusable?: boolean;
 
   @ApiProperty({
@@ -157,7 +164,7 @@ export class GetOffersQueryDto {
   })
   @IsOptional()
   @IsBoolean()
-  @Type(() => Boolean)
+    @ToBoolean()
   isReusable?: boolean;
 
   @ApiPropertyOptional({
@@ -323,7 +330,7 @@ export class UpdateOfferDto {
     description: 'Whether the offer can be reused',
   })
   @IsOptional()
-  @IsBoolean()
+  @ToBoolean()
   @Type(() => Boolean)
   isReusable?: boolean;
 
@@ -395,6 +402,4 @@ export class UpdateOfferDto {
   @IsOptional()
   @IsEnum(OfferStatus)
   status?: OfferStatus;
-
-
 }
