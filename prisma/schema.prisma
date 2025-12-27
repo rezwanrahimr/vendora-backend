@@ -24,6 +24,7 @@ model User {
   verificationCodeExpiry DateTime?
   fcmTokens              Json?
   lastActiveAt           DateTime?
+  isDeleted              Boolean                @default(false)
   notifications          UserNotification[]
   vendorProfile          VendorProfile?
   offerRedemptions       OfferRedemption[]
@@ -64,6 +65,7 @@ model VendorProfile {
   logoUrl       String?
   streetAddress String
   vendorId      String   @default(uuid())
+  isDeleted     Boolean  @default(false)
   zipCode       String
   categoryId    String
   Category      Category @relation(fields: [categoryId], references: [id])

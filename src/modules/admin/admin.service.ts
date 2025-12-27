@@ -130,6 +130,7 @@ export class AdminService {
     // Build the where condition
     const where: any = {
       role: 'USER',
+      isDeleted: false,
     };
     if (search) {
       where.OR = [
@@ -205,6 +206,8 @@ export class AdminService {
     // Build the where condition
     const where: any = {
       role: 'VENDOR',
+      vendorProfile: { isDeleted: false },
+      isDeleted: false,
     };
     if (search) {
       where.OR = [
@@ -361,20 +364,35 @@ export class AdminService {
   }
 
   async deleteVendor(id: string) {
-    // Check if user exists and is a vendor
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: { role: true },
+    const vendor = await this.prisma.user.findFirst({
+      where: {
+        id,
+        role: 'VENDOR',
+       
+      },
+      omit: {
+        password: true,
+      },
+      include: { vendorProfile: true },
     });
 
-    if (!user || user.role !== 'VENDOR') {
+    if (!vendor || !vendor.vendorProfile) {
       throw new NotFoundException('Vendor not found');
     }
 
-    // Delete user (cascade will delete vendor profile and offers)
-    await this.prisma.user.delete({
-      where: { id },
-    });
+    if (vendor.isDeleted || vendor.vendorProfile.isDeleted)
+      throw new BadRequestException('Vendor already deleted');
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id },
+        data: { isDeleted: true },
+      }),
+      this.prisma.vendorProfile.updateMany({
+        where: { userId: id, isDeleted: false },
+        data: { isDeleted: true },
+      }),
+    ]);
 
     return { message: 'Vendor deleted successfully' };
   }
