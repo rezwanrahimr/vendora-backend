@@ -159,6 +159,13 @@ export class AdminController {
     return this.adminService.allUsers(search, parseInt(page), parseInt(limit));
   }
 
+  @Patch('suspend-user/:id')
+  @ApiOperation({ summary: 'Suspend a user by ID' })
+  @ApiResponse({ status: 200, description: 'User suspended successfully' })
+  suspendUser(@Param('id') id: string) {
+    return this.adminService.suspendUser(id);
+  }
+
   @Delete('user/:id')
   @ApiOperation({ summary: 'Delete a user by ID' })
   @ApiResponse({ status: 200, description: 'User deleted successfully' })
@@ -208,7 +215,10 @@ export class AdminController {
   @Patch('vendor/:id')
   @ApiOperation({ summary: 'Update a vendor by ID' })
   @ApiResponse({ status: 200, description: 'vendor update successfully' })
-  updateVendor(@Param('id') id: string, @Body() updateData: UpdateVendorProfileDto) {
+  updateVendor(
+    @Param('id') id: string,
+    @Body() updateData: UpdateVendorProfileDto,
+  ) {
     return this.adminService.updateVendor(id, updateData);
   }
 

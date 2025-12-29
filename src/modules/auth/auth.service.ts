@@ -15,6 +15,7 @@ import {
   VerifyResetCodeDto,
   ConfirmResetPasswordDto,
   ChangePasswordDto,
+  LoginWithGoogleDto,
 } from './dto';
 import { EmailService } from './email.service';
 import { CacheService } from './cache.service';
@@ -255,6 +256,48 @@ export class AuthService {
     });
   }
 
+  async loginWithGoogle(loginWithGoogleDto: LoginWithGoogleDto) {
+    let user = await this.prisma.user.findUnique({
+      where: {
+        email: loginWithGoogleDto.email,
+      },
+      omit: {
+        password: true,
+      },
+    });
+    // TODO add isGoogleLogin flag
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email: loginWithGoogleDto.email,
+          name: loginWithGoogleDto.name,
+          role: 'USER',
+          status: 'ACTIVE',
+          isEmailVerified: true,
+          password: '',
+          imageUrl: loginWithGoogleDto.imageUrl,
+        },
+        omit: {
+          password: true,
+        },
+      });
+    }
+
+    if (user.status !== 'ACTIVE') {
+      throw new UnauthorizedException(
+        'Account is not active. Please contact support.',
+      );
+    }
+
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    const accessToken = this.jwtService.sign(payload);
+
+    return new ResponseDto(true, 'Login successful', {
+      user,
+      accessToken,
+    });
+  }
+
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
     const { email, code } = verifyEmailDto;
 
@@ -439,6 +482,11 @@ export class AuthService {
 
   // Change password for authenticated user
   async changePassword(userId: number, changePasswordDto: ChangePasswordDto) {
+    console.log(
+      '🚀 ~ auth.service.ts:443 ~ AuthService ~ changePassword ~ userId:',
+      userId,
+    );
+
     const { currentPassword, newPassword } = changePasswordDto;
 
     // Find user

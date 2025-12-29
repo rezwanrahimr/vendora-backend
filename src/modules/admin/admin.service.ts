@@ -193,6 +193,34 @@ export class AdminService {
     };
   }
 
+  async suspendUser(id: string) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id,
+        role: 'USER',
+      },
+      select: { status: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const newStatus = user.status === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED';
+
+    await this.prisma.user.update({
+      where: { id },
+      data: { status: newStatus },
+    });
+
+    return {
+      message:
+        newStatus === 'SUSPENDED'
+          ? 'User suspended successfully'
+          : 'User activated successfully',
+    };
+  }
+
   async deleteUser(id: string) {
     await this.prisma.user.delete({
       where: { id },
