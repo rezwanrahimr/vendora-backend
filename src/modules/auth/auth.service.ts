@@ -96,16 +96,8 @@ export class AuthService {
   }
 
   async registerVendor(registerVendorDto: RegisterVendorDto) {
-    const {
-      email,
-      password,
-      name,
-      streetAddress,
-      city,
-      zipCode,
-      categoryId,
-      businessName,
-    } = registerVendorDto;
+    const { email, password, name, streetAddress, city, zipCode, categoryId } =
+      registerVendorDto;
 
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
@@ -163,10 +155,11 @@ export class AuthService {
           vendorProfile: {
             create: {
               streetAddress,
-              businessName: businessName || '',
+              businessName: registerVendorDto.businessName || '',
               city,
               zipCode,
-              categoryId: category.id, // Default category, should be updated later
+              categoryId: category.id,
+              about: registerVendorDto.about || '',
             },
           },
         },

@@ -30,4 +30,10 @@ export class RegisterVendorDto extends RegisterDto {
   categoryId: string;
   @ApiPropertyOptional({ description: 'Business name', example: 'Acme Inc' })
   businessName?: string;
+
+  @ApiPropertyOptional({
+    description: 'Description of the vendor',
+    example: 'We sell the best products',
+  })
+  about?: string;
 }
