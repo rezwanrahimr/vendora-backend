@@ -213,6 +213,7 @@ enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+  REJECTED
 }
 
 enum OfferStatus {

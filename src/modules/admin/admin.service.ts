@@ -321,6 +321,32 @@ export class AdminService {
     return { message: 'Vendor approved successfully' };
   }
 
+  async rejectVendor(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user || user.role !== 'VENDOR') {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    await this.prisma.user.update({
+      where: { id },
+      data: { status: 'REJECTED' },
+    });
+
+    await this.emailService.sendEmail({
+      subject: 'Vendor Account Rejected',
+      to: user.email,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Sorry!</h2>
+          <p>Your vendor account has been rejected. Please contact our support team for further information.</p>
+          <p>Thank you for your understanding.</p>
+        </div>
+      `,
+    });
+
+    return { message: 'Vendor rejected successfully' };
+  }
+
   async updateVendor(id: string, updateData: UpdateVendorProfileDto) {
     // Find vendor profile first
     const vendor = await this.prisma.vendorProfile.findUnique({
