@@ -482,11 +482,6 @@ export class AuthService {
 
   // Change password for authenticated user
   async changePassword(userId: number, changePasswordDto: ChangePasswordDto) {
-    console.log(
-      '🚀 ~ auth.service.ts:443 ~ AuthService ~ changePassword ~ userId:',
-      userId,
-    );
-
     const { currentPassword, newPassword } = changePasswordDto;
 
     // Find user

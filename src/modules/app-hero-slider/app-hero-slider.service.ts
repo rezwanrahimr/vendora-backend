@@ -1,0 +1,111 @@
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { PrismaService } from 'src/prisma.service';
+import {
+  ManageImageDto,
+  ReorderHeroSliderDto,
+} from './dto/app-hero-slider.dto';
+
+@Injectable()
+export class AppHeroSliderService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  addImage(file?: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Please upload an image file');
+    }
+
+    return this.prisma.appHeroSlider.create({
+      data: {
+        imageUrl: `/uploads/app-hero-slider/${file.filename}`,
+      },
+    });
+  }
+
+  removeImage(id: string) {
+    return this.prisma.appHeroSlider.delete({ where: { id } });
+  }
+
+  async manageImage(payload: ManageImageDto) {
+    const ids = payload.images.map((i) => i.id);
+
+    // 1. Ensure all images exist
+    const existingCount = await this.prisma.appHeroSlider.count({
+      where: { id: { in: ids } },
+    });
+
+    if (existingCount !== ids.length) {
+      throw new BadRequestException('One or more images not found');
+    }
+
+    // 2. Enforce max 5 active images (global)
+    const activeInPayload = payload.images.filter((i) => i.isActive).length;
+
+    const activeOutsidePayload = await this.prisma.appHeroSlider.count({
+      where: {
+        isActive: true,
+        id: { notIn: ids },
+      },
+    });
+
+    if (activeOutsidePayload + activeInPayload > 5) {
+      throw new BadRequestException('Maximum 5 active hero images allowed');
+    }
+
+    // 3. Update row-by-row (required)
+    await this.prisma.$transaction(
+      payload.images.map((image) =>
+        this.prisma.appHeroSlider.update({
+          where: { id: image.id },
+          data: { isActive: image.isActive },
+        }),
+      ),
+    );
+
+    return 'Hero images updated successfully';
+  }
+
+  async reorderImages(payload: ReorderHeroSliderDto) {
+    if (!payload.items.length) {
+      throw new BadRequestException('Reorder payload is empty');
+    }
+
+    const ids = payload.items.map((i) => i.id);
+
+    // 1. Validate all images exist
+    const existingCount = await this.prisma.appHeroSlider.count({
+      where: { id: { in: ids } },
+    });
+
+    if (existingCount !== ids.length) {
+      throw new BadRequestException('One or more images not found');
+    }
+
+    // 2. Ensure no duplicate order values
+    const orders = payload.items.map((i) => i.order);
+    if (new Set(orders).size !== orders.length) {
+      throw new BadRequestException('Duplicate order values detected');
+    }
+
+    // 3. Atomic reorder
+    await this.prisma.$transaction(
+      payload.items.map((item) =>
+        this.prisma.appHeroSlider.update({
+          where: { id: item.id },
+          data: { order: item.order },
+        }),
+      ),
+    );
+
+    return 'Hero slider reordered successfully';
+  }
+
+  async getAllImages() {
+    return await this.prisma.appHeroSlider.findMany();
+  }
+
+  async getActiveImage() {
+    return await this.prisma.appHeroSlider.findFirst({
+      where: { isActive: true },
+    });
+  }
+}
