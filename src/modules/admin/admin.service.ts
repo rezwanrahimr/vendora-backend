@@ -10,7 +10,7 @@ import {
   VendorUpdateDto,
 } from './dto/update-vendor.dto';
 import { format, getMonth } from 'date-fns';
-import { OfferStatus } from '@prisma/client';
+import { OfferStatus, UserStatus } from '@prisma/client';
 import { Parser } from 'json2csv';
 
 @Injectable()
@@ -130,6 +130,7 @@ export class AdminService {
     // Build the where condition
     const where: any = {
       role: 'USER',
+      isDeleted: false,
     };
     if (search) {
       where.OR = [
@@ -142,7 +143,9 @@ export class AdminService {
     const total = await this.prisma.user.count({ where });
 
     const totalUsers = await this.prisma.user.count({
-      where: { role: 'USER' },
+      where: {
+        role: 'USER',
+      },
     });
 
     const totalSuspended = await this.prisma.user.count({
@@ -231,6 +234,8 @@ export class AdminService {
     // Build the where condition
     const where: any = {
       role: 'VENDOR',
+      vendorProfile: { isDeleted: false },
+      isDeleted: false,
     };
     if (search) {
       where.OR = [
@@ -316,6 +321,32 @@ export class AdminService {
     return { message: 'Vendor approved successfully' };
   }
 
+  async rejectVendor(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user || user.role !== 'VENDOR') {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    await this.prisma.user.update({
+      where: { id },
+      data: { status: 'REJECTED' },
+    });
+
+    await this.emailService.sendEmail({
+      subject: 'Vendor Account Rejected',
+      to: user.email,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Sorry!</h2>
+          <p>Your vendor account has been rejected. Please contact our support team for further information.</p>
+          <p>Thank you for your understanding.</p>
+        </div>
+      `,
+    });
+
+    return { message: 'Vendor rejected successfully' };
+  }
+
   async updateVendor(id: string, updateData: UpdateVendorProfileDto) {
     // Find vendor profile first
     const vendor = await this.prisma.vendorProfile.findUnique({
@@ -387,20 +418,35 @@ export class AdminService {
   }
 
   async deleteVendor(id: string) {
-    // Check if user exists and is a vendor
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: { role: true },
+    const vendor = await this.prisma.user.findFirst({
+      where: {
+        id,
+        role: 'VENDOR',
+       
+      },
+      omit: {
+        password: true,
+      },
+      include: { vendorProfile: true },
     });
 
-    if (!user || user.role !== 'VENDOR') {
+    if (!vendor || !vendor.vendorProfile) {
       throw new NotFoundException('Vendor not found');
     }
 
-    // Delete user (cascade will delete vendor profile and offers)
-    await this.prisma.user.delete({
-      where: { id },
-    });
+    if (vendor.isDeleted || vendor.vendorProfile.isDeleted)
+      throw new BadRequestException('Vendor already deleted');
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id },
+        data: { isDeleted: true },
+      }),
+      this.prisma.vendorProfile.updateMany({
+        where: { userId: id, isDeleted: false },
+        data: { isDeleted: true },
+      }),
+    ]);
 
     return { message: 'Vendor deleted successfully' };
   }

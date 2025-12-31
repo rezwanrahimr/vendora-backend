@@ -14,6 +14,7 @@ import { AdminLegalModule } from './modules/admin-legal/admin-legal.module';
 import { AdminNotificationModule } from './modules/admin-notification/admin-notification.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { AdminGeneralModule } from './modules/admin-general/admin-general.module';
+import { AppHeroSliderModule } from './modules/app-hero-slider/app-hero-slider.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -33,6 +34,7 @@ import configuration from './config/configuration';
     AdminNotificationModule,
     NotificationModule,
     AdminGeneralModule,
+    AppHeroSliderModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

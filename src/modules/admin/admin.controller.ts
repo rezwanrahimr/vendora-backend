@@ -212,6 +212,15 @@ export class AdminController {
     return this.adminService.approvedVendor(id);
   }
 
+
+  // TODO: need to test after database update
+  @Patch('vendor/:id/reject')
+  @ApiOperation({ summary: 'Reject a vendor by ID' })
+  @ApiResponse({ status: 200, description: 'Vendor rejected successfully' })
+  rejectVendor(@Param('id') id: string) {
+    return this.adminService.rejectVendor(id);
+  }
+
   @Patch('vendor/:id')
   @ApiOperation({ summary: 'Update a vendor by ID' })
   @ApiResponse({ status: 200, description: 'vendor update successfully' })

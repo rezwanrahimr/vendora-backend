@@ -24,6 +24,7 @@ model User {
   verificationCodeExpiry DateTime?
   fcmTokens              Json?
   lastActiveAt           DateTime?
+  isDeleted              Boolean                @default(false)
   notifications          UserNotification[]
   vendorProfile          VendorProfile?
   offerRedemptions       OfferRedemption[]
@@ -56,6 +57,7 @@ model VendorProfile {
   id            String   @id @default(uuid())
   userId        String   @unique
   businessName  String?
+  about         String?
   isVerified    Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -64,6 +66,7 @@ model VendorProfile {
   logoUrl       String?
   streetAddress String
   vendorId      String   @default(uuid())
+  isDeleted     Boolean  @default(false)
   zipCode       String
   categoryId    String
   Category      Category @relation(fields: [categoryId], references: [id])
@@ -176,6 +179,15 @@ model AdminGeneralSettings {
   updatedAt DateTime @updatedAt
 }
 
+model AppHeroSlider {
+  id        String   @id @default(uuid())
+  imageUrl  String
+  isActive  Boolean  @default(false)
+  order     Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum NotificationType {
   NEW_OFFER
   RENEWAL_REMINDER
@@ -202,6 +214,7 @@ enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+  REJECTED
 }
 
 enum OfferStatus {
