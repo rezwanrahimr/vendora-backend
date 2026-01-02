@@ -4,7 +4,6 @@ import {
   Param,
   Patch,
   Body,
-  ParseIntPipe,
   UseGuards,
   Query,
   Res,
@@ -27,10 +26,7 @@ import {
   ApiSecurity,
 } from '@nestjs/swagger';
 import { Response } from 'express';
-import {
-  ImageUploadResponseDto,
-  UploadImageDto,
-} from '../users/dto/upload-image.dto';
+import { ImageUploadResponseDto } from '../users/dto/upload-image.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   imageFileFilter,
@@ -46,7 +42,7 @@ export class VendorsController {
   constructor(private readonly vendorsService: VendorsService) {}
 
   @Patch('/upload-logo')
-  @ApiOperation({ summary: 'Upload user profile image, vendor only' })
+  @ApiOperation({ summary: 'Upload vendor logo, vendor only' })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({
     status: 200,
@@ -77,6 +73,43 @@ export class VendorsController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.vendorsService.uploadLogo(user.id, file);
+  }
+
+  @Patch('/upload-logo/:id')
+  @ApiOperation({ summary: 'Upload  vendor logo, admin only' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({
+    status: 200,
+    description: 'Image uploaded successfully',
+    type: ImageUploadResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid file type or size' })
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: vendorLogoStorage,
+      fileFilter: imageFileFilter,
+    }),
+    FileSizeInterceptor,
+  )
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        image: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiParam({ name: 'id', type: 'string', description: 'Vendor user ID' })
+  @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  async uploadLogoByAdmin(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.vendorsService.uploadLogo(id, file);
   }
 
   @Get()
