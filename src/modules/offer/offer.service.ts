@@ -21,6 +21,7 @@ import { NotificationType } from '../notification/dto';
 import fs from 'fs';
 import path from 'path';
 import { randomBytes } from 'crypto';
+import { off } from 'process';
 
 @Injectable()
 export class OfferService {
@@ -74,6 +75,30 @@ export class OfferService {
       throw new BadRequestException(
         'cooldownPeriod must be provided for reusable offers',
       );
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // midnight today
+
+    const validFromDate = new Date(validFrom);
+    validFromDate.setHours(0, 0, 0, 0);
+
+    const validUntilDate = new Date(validUntil);
+    validUntilDate.setHours(0, 0, 0, 0);
+
+    // 1️⃣ validFrom must be today or future
+    if (validFromDate < today) {
+      throw new BadRequestException('validFrom must be today or in the future');
+    }
+
+    // 2️⃣ validUntil must be strictly in the future (after today)
+    if (validUntilDate <= today) {
+      throw new BadRequestException('validUntil must be in the future');
+    }
+
+    // 3️⃣ validUntil must not be before validFrom
+    if (validUntilDate < validFromDate) {
+      throw new BadRequestException('validUntil cannot be before validFrom');
     }
 
     // Create offer
@@ -458,13 +483,19 @@ export class OfferService {
     // 2️⃣ Fetch customer
     const customer = await this.prisma.user.findUnique({
       where: { email: customerEmail },
-      select: { id: true, email: true, name: true },
+      select: { id: true, email: true, name: true, status: true },
     });
 
     // TODO: need to check subscription
 
     if (!customer) {
       throw new NotFoundException('Customer not found');
+    }
+
+    if (customer.status !== 'ACTIVE') {
+      throw new BadRequestException(
+        'Customer is not active or suspended, unable to redeem',
+      );
     }
 
     if (String(customer.id).trim() !== String(qrCode.userId).trim()) {
@@ -480,11 +511,21 @@ export class OfferService {
       });
 
       if (!offer) throw new NotFoundException('Offer not found');
-      if (offer.VendorProfile.userId !== vendorUserId)
+
+      if (offer.VendorProfile?.userId !== vendorUserId)
         throw new BadRequestException('Offer does not belong to you');
+
       if (offer.status !== 'ACTIVE')
         throw new BadRequestException('Offer not active');
+
       if (offer.isDeleted) throw new BadRequestException('Offer deleted');
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // midnight today
+
+      if (offer.validUntil.getTime() < today.getTime()) {
+        throw new BadRequestException('Offer expired');
+      }
 
       // 4️⃣ Previous redemption & cooldown
       const lastRedemption = await tx.offerRedemption.findUnique({
