@@ -4,10 +4,12 @@ import {
   NotFoundException,
   Inject,
   forwardRef,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import {
   CreateOfferDto,
+  GenerateQrCodeDto,
   GetOffersQueryDto,
   GetVendorOffersQueryDto,
   RedeemOfferDto,
@@ -18,6 +20,7 @@ import { PushNotificationService } from '../notification/push-notification.servi
 import { NotificationType } from '../notification/dto';
 import fs from 'fs';
 import path from 'path';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class OfferService {
@@ -202,7 +205,7 @@ export class OfferService {
       isDeleted: false,
       status: { not: 'DELETED' },
     };
-    
+
     if (query.status) where.status = query.status;
     if (query.type) where.type = query.type;
     if (query.vendorId) where.vendorId = query.vendorId;
@@ -384,149 +387,115 @@ export class OfferService {
     });
   }
 
-  // async redeemOffer(payload: RedeemOfferDto, userId: string) {
-  //   const { offerId, customerEmail } = payload;
+  async generateQRCode(payload: GenerateQrCodeDto, userId: string) {
+    const { offerId } = payload;
 
-  //   // 1️⃣ Fetch customer
-  //   const customer = await this.prisma.user.findUnique({
-  //     where: { email: customerEmail },
-  //   });
-  //   if (!customer) throw new NotFoundException(`Customer not found`);
+    // 1. Validate offer
+    const offer = await this.prisma.offer.findUnique({
+      where: { id: offerId },
+      select: { id: true, status: true },
+    });
 
-  //   return this.prisma.$transaction(async (tx) => {
-  //     // 2️⃣ Fetch offer
-  //     const offer = await tx.offer.findUnique({
-  //       where: { id: offerId },
-  //       include: {
-  //         VendorProfile: true,
-  //       },
-  //     });
+    if (!offer) {
+      throw new NotFoundException('Offer not found');
+    }
 
-  //     if (!offer) throw new NotFoundException(`Offer not found`);
+    if (offer.status !== 'ACTIVE') {
+      throw new BadRequestException('Offer is not active');
+    }
 
-  //     if (offer.VendorProfile.userId !== userId)
-  //       throw new BadRequestException(
-  //         'Offer does not belong to you, It is owned by ' +
-  //           offer.VendorProfile.businessName,
-  //       );
+    // 2. Generate QR token (retry-safe)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const token = randomBytes(32).toString('base64url');
 
-  //     if (offer.status !== 'ACTIVE')
-  //       throw new BadRequestException('Offer not active');
+        const qrCode = await this.prisma.qRCode.create({
+          data: {
+            offerId,
+            userId,
+            token,
+          },
+          select: { token: true },
+        });
 
-  //     if (offer.isDeleted) throw new BadRequestException('Offer deleted');
-  //     if (offer.maxRedemptions && offer.redeemedCount >= offer.maxRedemptions)
-  //       throw new BadRequestException('Offer maxed out');
+        return qrCode;
+      } catch (err) {
+        // Token collision (extremely rare)
+        if (
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === 'P2002'
+        ) {
+          continue;
+        }
 
-  //     // 3️⃣ Check previous redemption
-  //     const lastRedemption = await tx.offerRedemption.findUnique({
-  //       where: { offerId_userId: { offerId, userId: customer.id } },
-  //     });
+        // Known, controlled failure
+        throw new ConflictException('Unable to generate QR code at this time');
+      }
+    }
 
-  //     // ❌ For non-reusable offers, throw error if already redeemed
-  //     if (!offer.isReusable && lastRedemption) {
-  //       throw new BadRequestException('This offer can only be redeemed once');
-  //     }
-
-  //     // 4️⃣ Check cooldown for reusable offers
-  //     if (offer.isReusable && offer.cooldownPeriod && lastRedemption) {
-  //       const nextAvailable = new Date(lastRedemption.lastRedeemedAt);
-  //       nextAvailable.setDate(nextAvailable.getDate() + offer.cooldownPeriod);
-  //       if (nextAvailable > new Date()) {
-  //         const remainingDays = Math.ceil(
-  //           (nextAvailable.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-  //         );
-  //         throw new BadRequestException(
-  //           `Offer on cooldown, try in ${remainingDays} day(s)`,
-  //         );
-  //       }
-  //     }
-
-  //     // 5️⃣ Upsert redemption (tracks lastRedeemedAt)
-  //     const redemption = await tx.offerRedemption.upsert({
-  //       where: { offerId_userId: { offerId, userId: customer.id } },
-  //       update: { lastRedeemedAt: new Date() },
-  //       create: { offerId, userId: customer.id },
-  //     });
-
-  //     // 6️⃣ Log redemption event for dashboard
-  //     await tx.offerRedemptionEvent.create({
-  //       data: { offerId, userId: customer.id, vendorId: offer.vendorId },
-  //     });
-
-  //     // 7️⃣ Increment redeemedCount
-  //     const updatedOffer = await tx.offer.update({
-  //       where: { id: offerId },
-  //       data: { redeemedCount: { increment: 1 } },
-  //     });
-
-  //     return { offer: updatedOffer, redemption };
-  //   });
-  // }
+    // Should never realistically happen
+    throw new ConflictException('Please try again');
+  }
 
   async redeemOffer(payload: RedeemOfferDto, vendorUserId: string) {
-    const { offerId, customerEmail } = payload;
+    const { qrToken, customerEmail } = payload;
 
-    // 1️⃣ Fetch customer
+    // 1️⃣ Fetch QR code
+    const qrCode = await this.prisma.qRCode.findUnique({
+      where: { token: qrToken },
+      // select: { id: true, userId: true, offerId: true, isRedeemed: true },
+      include: { User: true },
+    });
+
+    if (!qrCode) {
+      throw new NotFoundException('QR code not found');
+    }
+
+    if (qrCode.isRedeemed) {
+      throw new BadRequestException('QR code has already been redeemed');
+    }
+
+    // 2️⃣ Fetch customer
     const customer = await this.prisma.user.findUnique({
       where: { email: customerEmail },
-      select: { id: true },
+      select: { id: true, email: true, name: true },
     });
+
+    // TODO: need to check subscription
 
     if (!customer) {
       throw new NotFoundException('Customer not found');
     }
 
+    if (String(customer.id).trim() !== String(qrCode.userId).trim()) {
+      throw new BadRequestException('QR code does not belong to this customer');
+    }
+
+    // 3️⃣ Transactional redemption
     return this.prisma.$transaction(async (tx) => {
-      // 2️⃣ Fetch offer + vendor ownership
       const offer = await tx.offer.findUnique({
-        where: { id: offerId },
-        select: {
-          id: true,
-          status: true,
-          isDeleted: true,
-          isReusable: true,
-          cooldownPeriod: true,
-          maxRedemptions: true,
-          redeemedCount: true,
-          vendorId: true,
-          VendorProfile: {
-            select: { userId: true },
-          },
-        },
+        where: { id: qrCode.offerId },
+
+        include: { VendorProfile: true },
       });
 
-      if (!offer) {
-        throw new NotFoundException('Offer not found');
-      }
-
-      if (offer.VendorProfile.userId !== vendorUserId) {
+      if (!offer) throw new NotFoundException('Offer not found');
+      if (offer.VendorProfile.userId !== vendorUserId)
         throw new BadRequestException('Offer does not belong to you');
-      }
-
-      if (offer.status !== 'ACTIVE') {
+      if (offer.status !== 'ACTIVE')
         throw new BadRequestException('Offer not active');
-      }
+      if (offer.isDeleted) throw new BadRequestException('Offer deleted');
 
-      if (offer.isDeleted) {
-        throw new BadRequestException('Offer deleted');
-      }
-
-      // 3️⃣ Fetch previous redemption
+      // 4️⃣ Previous redemption & cooldown
       const lastRedemption = await tx.offerRedemption.findUnique({
-        where: {
-          offerId_userId: {
-            offerId,
-            userId: customer.id,
-          },
-        },
+        where: { offerId_userId: { offerId: offer.id, userId: customer.id } },
+        select: { lastRedeemedAt: true },
       });
 
-      // ❌ Non-reusable offer already redeemed
       if (!offer.isReusable && lastRedemption) {
         throw new BadRequestException('This offer can only be redeemed once');
       }
 
-      // 4️⃣ Cooldown enforcement (time-based)
       if (offer.isReusable && offer.cooldownPeriod && lastRedemption) {
         const nextAvailable =
           lastRedemption.lastRedeemedAt.getTime() +
@@ -536,60 +505,61 @@ export class OfferService {
           const remainingDays = Math.ceil(
             (nextAvailable - Date.now()) / (1000 * 60 * 60 * 24),
           );
-
           throw new BadRequestException(
             `Offer on cooldown, try in ${remainingDays} day(s)`,
           );
         }
       }
 
-      // 5️⃣ Atomic maxRedemptions check + increment
-      const increment = await tx.offer.updateMany({
+      // 5️⃣ Max redemptions enforcement
+      const updated = await tx.offer.updateMany({
         where: {
-          id: offerId,
+          id: offer.id,
           ...(offer.maxRedemptions
             ? { redeemedCount: { lt: offer.maxRedemptions } }
             : {}),
         },
-        data: {
-          redeemedCount: { increment: 1 },
-        },
+        data: { redeemedCount: { increment: 1 } },
       });
 
-      if (increment.count === 0) {
-        throw new BadRequestException('Offer maxed out');
-      }
+      if (updated.count === 0) throw new BadRequestException('Offer maxed out');
 
-      // 6️⃣ Upsert redemption record
+      // 6️⃣ Upsert redemption
       const redemption = await tx.offerRedemption.upsert({
-        where: {
-          offerId_userId: {
-            offerId,
-            userId: customer.id,
-          },
-        },
-        update: {
-          lastRedeemedAt: new Date(),
-        },
-        create: {
-          offerId,
-          userId: customer.id,
-        },
+        where: { offerId_userId: { offerId: offer.id, userId: customer.id } },
+        create: { offerId: offer.id, userId: customer.id },
+        update: { lastRedeemedAt: new Date() },
+        select: { lastRedeemedAt: true },
       });
 
-      // 7️⃣ Log redemption event
+      // 7️⃣ Mark QR code as redeemed
+      await tx.qRCode.update({
+        where: { id: qrCode.id },
+        data: { isRedeemed: true, redeemedAt: new Date() },
+      });
+
+      // 8️⃣ Log redemption event
       await tx.offerRedemptionEvent.create({
         data: {
-          offerId,
+          offerId: offer.id,
           userId: customer.id,
-          vendorId: offer.vendorId,
+          vendorId: vendorUserId,
         },
       });
 
-      // 8️⃣ Return minimal response
+      // 9️⃣ Return minimal response
       return {
-        offer,
-        redemption,
+        offer: {
+          id: offer.id,
+          title: offer.title,
+          redemptionCount: offer.redeemedCount,
+          maxRedemptions: offer.maxRedemptions,
+        },
+        redeemedAt: redemption.lastRedeemedAt,
+        vendor: offer.VendorProfile
+          ? { id: offer.vendorId, name: offer.VendorProfile.businessName }
+          : { id: offer.vendorId, name: null },
+        redeemer: { id: customer.id, name: customer.name || null },
       };
     });
   }

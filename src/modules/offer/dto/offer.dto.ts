@@ -164,7 +164,7 @@ export class GetOffersQueryDto {
   })
   @IsOptional()
   @IsBoolean()
-    @ToBoolean()
+  @ToBoolean()
   isReusable?: boolean;
 
   @ApiPropertyOptional({
@@ -263,12 +263,12 @@ export class GetVendorOffersQueryDto {
 
 export class RedeemOfferDto {
   @ApiProperty({
-    example: 'offer-12345',
-    description: 'ID of the offer to redeem',
+    example: 'abc123',
+    description: 'QR token of the offer to redeem',
   })
   @IsString()
   @IsNotEmpty()
-  offerId: string;
+  qrToken: string;
 
   @ApiProperty({
     example: 'customer@example.com',
@@ -402,4 +402,14 @@ export class UpdateOfferDto {
   @IsOptional()
   @IsEnum(OfferStatus)
   status?: OfferStatus;
+}
+
+export class GenerateQrCodeDto {
+  @ApiProperty({
+    example: 'offer-12345',
+    description: 'ID of the offer to generate QR code for',
+  })
+  @IsString()
+  @IsNotEmpty()
+  offerId: string;
 }
