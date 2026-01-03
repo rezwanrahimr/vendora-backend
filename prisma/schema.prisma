@@ -30,6 +30,7 @@ model User {
   offerRedemptions       OfferRedemption[]
   offerRedemptionEvents  OfferRedemptionEvent[]
   pushNotifications      PushNotification[]
+  qrcodes                QRCode[]
 }
 
 model UserNotification {
@@ -97,6 +98,7 @@ model Offer {
   VendorProfile         VendorProfile          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   offerRedemptions      OfferRedemption[]
   offerRedemptionEvents OfferRedemptionEvent[]
+  qrcodes               QRCode[]
 }
 
 model OfferRedemption {
@@ -177,6 +179,21 @@ model AdminGeneralSettings {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model QRCode {
+  id         String    @id @default(uuid())
+  userId     String
+  offerId    String
+  isRedeemed Boolean   @default(false)
+  token      String    @unique
+  redeemedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Offer Offer @relation(fields: [offerId], references: [id], onDelete: Cascade)
 }
 
 model AppHeroSlider {

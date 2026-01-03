@@ -23,6 +23,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import {
   CreateOfferDto,
+  GenerateQrCodeDto,
   GetOfferByCategoryIdDto,
   GetOffersQueryDto,
   GetVendorOffersQueryDto,
@@ -92,7 +93,55 @@ export class OfferController {
     return this.offerService.updateStatus(id, dto.status);
   }
 
+  @Post('qr-code')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'Generate a QR code for an offer',
+    description:
+      'Generates a one-time QR code for the specified offer. Only the authenticated user who owns the offer can generate a QR code.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'QR code generated successfully',
+    schema: {
+      example: { token: '9fK2LxQmE8pA7Z0wYdN4R' },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Offer is not active or invalid' })
+  @ApiResponse({ status: 404, description: 'Offer not found' })
+  @ApiResponse({
+    status: 409,
+    description: 'Unable to generate QR code at this time',
+  })
+  generateQRCode(@Body() payload: GenerateQrCodeDto, @CurrentUser() user: any) {
+    return this.offerService.generateQRCode(payload, user.id);
+  }
+
   @Post('/redeem')
+  @ApiOperation({ summary: 'Redeem an offer using a QR code, vendor only' })
+  @ApiResponse({
+    status: 201,
+    description: 'Offer redeemed successfully',
+    schema: {
+      example: {
+        offer: {
+          id: 'offer-id',
+          title: '20% Off Pizza',
+          redemptionCount: 1,
+          maxRedemptions: 5,
+        },
+        redeemedAt: '2026-01-03T10:00:00.000Z',
+        vendor: { id: 'vendor-id', name: 'Pizza Hub' },
+        redeemer: { id: 'customer-id', name: 'John Doe' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid QR code or offer conditions not met',
+  })
+  @ApiResponse({ status: 404, description: 'QR code or customer not found' })
   redeemOffer(@Body() payload: RedeemOfferDto, @CurrentUser() user: any) {
     return this.offerService.redeemOffer(payload, user.id);
   }
