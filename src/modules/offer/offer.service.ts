@@ -21,7 +21,6 @@ import { NotificationType } from '../notification/dto';
 import fs from 'fs';
 import path from 'path';
 import { randomBytes } from 'crypto';
-import { off } from 'process';
 
 @Injectable()
 export class OfferService {
