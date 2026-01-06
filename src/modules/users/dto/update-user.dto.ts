@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsEmail, IsEnum, IsOptional, IsDateString, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsDateString,
+  IsBoolean,
+} from 'class-validator';
 import { UserRole, UserStatus } from '@prisma/client';
 import { Transform } from 'class-transformer';
 
@@ -19,7 +26,11 @@ export class UpdateUserDto {
   @IsString()
   location?: string;
 
-  @ApiProperty({ required: false, example: '1990-01-01', description: 'Date of birth in YYYY-MM-DD format' })
+  @ApiProperty({
+    required: false,
+    example: '1990-01-01',
+    description: 'Date of birth in YYYY-MM-DD format',
+  })
   @IsOptional()
   @IsDateString()
   dateOfBirth?: string;

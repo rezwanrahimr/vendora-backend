@@ -16,23 +16,23 @@ interface FcmToken {
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   /**
    * Helper method to safely parse FCM tokens from JSON field
    */
   private parseFcmTokens(fcmTokensData: any): FcmToken[] {
     if (!fcmTokensData) return [];
-    
+
     if (Array.isArray(fcmTokensData)) {
       return fcmTokensData as FcmToken[];
     }
-    
+
     // Handle case where it might be stored as a single object
     if (typeof fcmTokensData === 'object' && fcmTokensData.token) {
       return [fcmTokensData] as FcmToken[];
     }
-    
+
     return [];
   }
 
@@ -71,7 +71,7 @@ export class UsersService {
 
     // Prepare data with proper type conversion
     const dataToUpdate: any = { ...updateData };
-    
+
     // Ensure dateOfBirth is properly formatted if provided
     if (updateData.dateOfBirth) {
       dataToUpdate.dateOfBirth = new Date(updateData.dateOfBirth);
@@ -170,10 +170,17 @@ export class UsersService {
     });
   }
 
-  async updateNotificationPreferences(userId: string, data: { newOffer?: boolean; renewalReminder?: boolean; promotional?: boolean }) {
+  async updateNotificationPreferences(
+    userId: string,
+    data: {
+      newOffer?: boolean;
+      renewalReminder?: boolean;
+      promotional?: boolean;
+    },
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { notifications: true }
+      include: { notifications: true },
     });
 
     if (!user) {

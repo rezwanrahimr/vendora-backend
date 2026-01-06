@@ -1,6 +1,8 @@
 export default () => ({
   jwt: {
-    secret: process.env.JWT_SECRET || '90b993b816f5a33db98331dffee22e4e2027e2de61376f1a87ac6d8ad94e8073',
+    secret:
+      process.env.JWT_SECRET ||
+      '90b993b816f5a33db98331dffee22e4e2027e2de61376f1a87ac6d8ad94e8073',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   },
   email: {

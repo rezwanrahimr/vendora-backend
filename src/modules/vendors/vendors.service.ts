@@ -791,8 +791,6 @@ export class VendorsService {
       throw new BadRequestException('Please upload an image file');
     }
 
-  
-
     const imageUrl = `/uploads/vendors/logos/${file.filename}`;
 
     const vendor = await this.prisma.vendorProfile.findUnique({

@@ -94,8 +94,11 @@ export class FirebaseService implements OnModuleInit {
       await messaging.send(message);
       return { success: true };
     } catch (error) {
-      this.logger.error(`Failed to send notification to token: ${token}`, error);
-      
+      this.logger.error(
+        `Failed to send notification to token: ${token}`,
+        error,
+      );
+
       // Check if token is invalid
       if (
         error.code === 'messaging/invalid-registration-token' ||
@@ -119,7 +122,11 @@ export class FirebaseService implements OnModuleInit {
   }> {
     const messaging = this.getMessaging();
     if (!messaging) {
-      return { successCount: 0, failureCount: tokens.length, invalidTokens: [] };
+      return {
+        successCount: 0,
+        failureCount: tokens.length,
+        invalidTokens: [],
+      };
     }
 
     try {
@@ -145,7 +152,7 @@ export class FirebaseService implements OnModuleInit {
       };
 
       const response = await messaging.sendEachForMulticast(message);
-      
+
       const invalidTokens: string[] = [];
       response.responses.forEach((resp, idx) => {
         if (
@@ -164,15 +171,22 @@ export class FirebaseService implements OnModuleInit {
       };
     } catch (error) {
       this.logger.error('Failed to send multicast notification', error);
-      
+
       // Check if it's a Firebase configuration error
-      if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+      if (
+        error.message?.includes('404') ||
+        error.message?.includes('Not Found')
+      ) {
         this.logger.error(
           'Firebase project not found. Please verify FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY in .env file.',
         );
       }
-      
-      return { successCount: 0, failureCount: tokens.length, invalidTokens: [] };
+
+      return {
+        successCount: 0,
+        failureCount: tokens.length,
+        invalidTokens: [],
+      };
     }
   }
 }

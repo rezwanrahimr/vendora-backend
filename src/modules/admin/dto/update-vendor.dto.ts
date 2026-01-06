@@ -30,8 +30,6 @@ export class VendorUpdateDto {
 }
 
 export class UpdateVendorProfileDto {
-
-
   @ApiProperty({ example: 'My Business', required: false })
   @IsString()
   @IsOptional()

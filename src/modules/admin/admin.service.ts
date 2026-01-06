@@ -422,7 +422,6 @@ export class AdminService {
       where: {
         id,
         role: 'VENDOR',
-       
       },
       omit: {
         password: true,

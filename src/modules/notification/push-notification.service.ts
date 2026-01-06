@@ -28,16 +28,16 @@ export class PushNotificationService {
    */
   private parseFcmTokens(fcmTokensData: any): FcmToken[] {
     if (!fcmTokensData) return [];
-    
+
     if (Array.isArray(fcmTokensData)) {
       return fcmTokensData as FcmToken[];
     }
-    
+
     // Handle case where it might be stored as a single object
     if (typeof fcmTokensData === 'object' && fcmTokensData.token) {
       return [fcmTokensData] as FcmToken[];
     }
-    
+
     return [];
   }
 
@@ -402,7 +402,8 @@ export class PushNotificationService {
   ): Record<string, string> {
     const stringMap: Record<string, string> = {};
     for (const [key, value] of Object.entries(data)) {
-      stringMap[key] = typeof value === 'string' ? value : JSON.stringify(value);
+      stringMap[key] =
+        typeof value === 'string' ? value : JSON.stringify(value);
     }
     return stringMap;
   }

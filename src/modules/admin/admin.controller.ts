@@ -212,7 +212,6 @@ export class AdminController {
     return this.adminService.approvedVendor(id);
   }
 
-
   // TODO: need to test after database update
   @Patch('vendor/:id/reject')
   @ApiOperation({ summary: 'Reject a vendor by ID' })

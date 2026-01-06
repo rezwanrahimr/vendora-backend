@@ -20,8 +20,6 @@ export class LoginWithGoogleDto {
   @ApiProperty({ description: 'Full name of the user', example: 'John Doe' })
   name: string;
 
-
-
   @IsString()
   @IsOptional()
   @ApiPropertyOptional({

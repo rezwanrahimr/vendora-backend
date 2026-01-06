@@ -4,25 +4,28 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   private pool: Pool;
 
   constructor() {
     const connectionString = process.env.DATABASE_URL || '';
-    
+
     if (!connectionString) {
       throw new Error('DATABASE_URL is not defined in environment variables');
     }
 
     const pool = new Pool({ connectionString });
-    
+
     // Add error handler to prevent unhandled errors
     pool.on('error', (err) => {
       console.error('Unexpected error on idle client', err);
     });
 
     const adapter = new PrismaPg(pool);
-    
+
     super({
       adapter,
       log: ['error', 'warn'],

@@ -32,7 +32,6 @@ export class TermsAndConditionsDto {
   TermsAndConditions?: string;
 }
 
-
 export class PrivacyPolicyDto {
   @IsString()
   @IsOptional()

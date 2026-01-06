@@ -11,7 +11,9 @@ export class UploadImageDto {
 }
 
 export class ImageUploadResponseDto {
-  @ApiProperty({ example: '/uploads/users/images/profile-1703145678901-a1b2c3d4e5f6g7h8.jpg' })
+  @ApiProperty({
+    example: '/uploads/users/images/profile-1703145678901-a1b2c3d4e5f6g7h8.jpg',
+  })
   imageUrl: string;
 
   @ApiProperty({ example: 'Image uploaded successfully' })

@@ -20,7 +20,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'your-secret-key-change-this-in-production',
+      secretOrKey:
+        process.env.JWT_SECRET || 'your-secret-key-change-this-in-production',
       passReqToCallback: true,
     });
   }
@@ -28,9 +29,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(req: Request, payload: JwtPayload) {
     // Extract token from header
     const token = req.headers.authorization?.replace('Bearer ', '');
-    
+
     // Check if token is blacklisted
-    if (token && await this.authService.isTokenBlacklisted(token)) {
+    if (token && (await this.authService.isTokenBlacklisted(token))) {
       throw new UnauthorizedException('Token has been revoked');
     }
 
@@ -45,7 +46,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found');
     }
 
-    console.log('JWT Strategy - User found:', { id: user.id, email: user.email, role: user.role, status: user.status });
+    console.log('JWT Strategy - User found:', {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    });
 
     // Remove password from user object
     const { password, ...userWithoutPassword } = user;

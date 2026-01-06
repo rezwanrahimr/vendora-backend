@@ -30,7 +30,9 @@ export class NotificationController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get user notifications with pagination and filters' })
+  @ApiOperation({
+    summary: 'Get user notifications with pagination and filters',
+  })
   @ApiResponse({
     status: 200,
     description: 'Notifications retrieved successfully',

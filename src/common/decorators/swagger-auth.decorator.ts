@@ -15,7 +15,7 @@ export function ApiJwtToken(headerName = 'Authorization') {
       name: headerName,
       description: 'JWT token (raw, no Bearer prefix)',
       required: true,
-       example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', // optional example
+      example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', // optional example
     }),
   );
 }

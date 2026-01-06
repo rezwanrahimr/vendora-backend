@@ -9,6 +9,7 @@
     "seed": "ts-node src/database/seeds.ts",
     "test-notifications": "ts-node src/scripts/test-notification-system.ts",
     "build": "prisma generate && nest build",
+    "format:fix": "prettier --ignore-path .gitignore --write \"**/*.+(js|ts|json)\"",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "node dist/src/main.js",
     "start:dev": "nest start --watch",
