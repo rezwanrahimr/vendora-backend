@@ -1,0 +1,29 @@
+name: CI/CD For Test and Deploy this application
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+    test:
+        name: Test Machine
+        runs-on: ubuntu-latest
+
+        steps:
+          - name: Code checkout on test Machine
+            uses: actions/checkout@v3
+
+          - name: Setup nodejs
+            uses: actions/setup-node@v3
+            with: 
+                 node-version: 24
+
+          - name: Install dependencies
+            run: npm install --force
+
+          - name: Run tests
+            run: npm run ci:fix
+
+          - name: Build application
+            run: npm run build
