@@ -14,11 +14,17 @@ RUN npm install
 # Copy the rest of the code
 COPY . .
 
-# Generate Prisma client with placeholder DATABASE_URL
-RUN DATABASE_URL="postgresql://user:pass@localhost:5432/db" npx prisma generate
+# Set placeholder DATABASE_URL for build time
+ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
+
+# Generate Prisma client
+RUN npx prisma generate
 
 # Build app
 RUN npm run build
+
+# Unset the placeholder (optional, will be overridden at runtime anyway)
+ENV DATABASE_URL=""
 
 # Expose port
 EXPOSE 3000
