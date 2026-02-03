@@ -41,8 +41,8 @@ jobs:
           username: ubuntu
           key: ${{ secrets.VPS_ACCESS_KEY }}
           script: |
-            docker compose down --remove-orphans
-            docker compose rm -f
-            docker compose pull
-            docker compose up -d
-            docker image prune -f
+            sudo docker compose down --remove-orphans
+            sudo docker compose rm -f
+            sudo docker compose pull
+            sudo docker compose up -d
+            sudo docker image prune -f
