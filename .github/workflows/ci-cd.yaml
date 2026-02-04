@@ -1,48 +1,168 @@
-name: Deploy To VPS
+name: CI/CD For test and deploy our application
 
 on:
   push:
     branches:
-      - main
+      - '**'
 
 jobs:
-  build-and-push:
-    name: Build and Push Docker Image
+  test:
+    name: Test Machine
     runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev'
 
     steps:
-      - name: Checkout code
+      - name: Code checkout on test machine
         uses: actions/checkout@v3
 
-      - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 24
 
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/yasminaarsic-server:latest .
+      - name: Install dependencies
+        run: npm install --force
 
-      - name: Push Docker image
+      - name: Run tests
+        run: npm run ci:fix
+
+      - name: Build application
+        run: npm run build
+
+  build-push:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Setup Docker
+        uses: docker/setup-docker-action@v4
+
+      - name: Build image
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/yasminaarsic-server:latest
+          docker build --no-cache \
+            -t ${{ secrets.DOCKER_USERNAME }}/${{ secrets.PACKAGE }}:latest .
+
+      - name: Push image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ secrets.PACKAGE }}:latest
 
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
-    needs: build-and-push  # ensures it waits for the first job to finish
+    if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      - name: Deploy to VPS via SSH
+      - name: Test SSH connection to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ubuntu
+          username: ${{ secrets.USERNAME }}
           key: ${{ secrets.VPS_ACCESS_KEY }}
           script: |
-            sudo docker compose down --remove-orphans
-            sudo docker compose rm -f
-            sudo docker compose pull
-            sudo docker compose up -d
-            sudo docker image prune -f
+            echo "Successfully connected to VPS"
+            uptime
+
+      - name: Copy docker-compose file
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.VPS_ACCESS_KEY }}
+          source: docker-compose.yaml
+          target: /home/${{ secrets.USERNAME }}/projects/${{ secrets.PACKAGE }}
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.VPS_ACCESS_KEY }}
+          script: |
+            cd ~/projects/${{ secrets.PACKAGE }}
+            docker compose --profile prod pull
+            docker compose --profile prod down
+            docker image prune -af
+            docker compose --profile prod up -d --force-recreate
+
+      - name: Restart Caddy server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.VPS_ACCESS_KEY }}
+          script: |
+            sudo systemctl restart caddy
+            echo "Successfully restarted Caddy server"
+
+  deploy-check:
+    name: Check if deploy was successful
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [deploy]
+
+    steps:
+      - name: Verify containers and app health
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.VPS_ACCESS_KEY }}
+          script: |
+            cd /home/${{ secrets.USERNAME }}/projects/${{ secrets.PACKAGE }}
+
+            container_status=$(docker compose ps -q | \
+              xargs docker inspect --format '{{ .State.Status }}' | \
+              grep -vE 'exited|restarting')
+
+            if [[ -z "$container_status" ]]; then
+              echo "One or more containers are not running properly."
+              exit 1
+            fi
+
+            echo "All containers are running."
+
+            response_code=$(curl --write-out "%{http_code}" \
+              --silent \
+              --output /dev/null \
+              http://localhost:${{ secrets.PORT }}/api/v1)
+
+            if [[ "$response_code" -eq 200 ]]; then
+              echo "App is responding with HTTP 200."
+            else
+              echo "App health check failed (HTTP $response_code)."
+              exit 1
+            fi
+
+  notify:
+    name: Notify on failure
+    runs-on: ubuntu-latest
+    needs: [build-push, deploy, deploy-check]
+    if: |
+      always() &&
+      (needs.build-push.result == 'failure' ||
+       needs.deploy.result == 'failure' ||
+       needs.deploy-check.result == 'failure') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+
+    steps:
+      - name: Send Telegram message
+        uses: devlopersabbir/telegram-action-notifier@v1.0.1
+        with:
+          bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          message: |
+            <b>🚨 Deployment Failed!</b>
+            Please check GitHub Actions logs immediately.

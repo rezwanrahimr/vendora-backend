@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.dockerignore
+.git
+.gitignore
+README.md
+LICENSE
+.vscode
+.env
+.env.test
+.env.production
+.env.development

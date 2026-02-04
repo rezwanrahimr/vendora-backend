@@ -1,33 +1,32 @@
-# Use Node.js base image
-FROM node:22-alpine
-
-# Set working directory inside container
+FROM node:24-alpine AS builder
 WORKDIR /app
 
-# Install dependencies (including dev, needed for build + prisma)
-COPY package*.json ./
 
+COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm install
+RUN npm install --force
 
-# Copy the rest of the code
 COPY . .
 
-# Set placeholder DATABASE_URL for build time
-ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
+ENV DATABASE_URL=postgres://$PG_USERNAME:$PG_PASSWORD@$PG_HOST:$PG_PORT/$PG_DATABASE?schema=public
 
-# Generate Prisma client
 RUN npx prisma generate
 
-# Build app
 RUN npm run build
 
-# Unset the placeholder (optional, will be overridden at runtime anyway)
-ENV DATABASE_URL=""
 
-# Expose port
+FROM node:24-alpine
+WORKDIR /app
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+
+ENV NODE_ENV=production
 EXPOSE 3000
 
 # Run migrations and start app
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
