@@ -27,7 +27,6 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
-import { UploadSingleFile } from 'src/common/upload-files/interceptors/upload.interceptor';
 import { UploadSingleImage } from 'src/common/upload-files/decorators/upload-file.decorator';
 
 @Controller('app-hero-slider')
