@@ -20,6 +20,7 @@ model User {
   phone                  String?                @unique
   status                 UserStatus             @default(PENDING)
   isEmailVerified        Boolean                @default(false)
+  isSubscribed           Boolean                @default(false) // for subscription check
   verificationCode       String?
   verificationCodeExpiry DateTime?
   fcmTokens              Json?
