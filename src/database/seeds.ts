@@ -1,14 +1,38 @@
 import 'dotenv/config';
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../app.module';
-import { PrismaService } from '../prisma.service';
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import * as bcrypt from 'bcrypt';
 
-async function runSeeds() {
-  const app = await NestFactory.createApplicationContext(AppModule);
-  const prisma = app.get(PrismaService);
+console.log('Seed script loaded.');
 
-  console.log('seeds');
+async function runSeeds() {
+  console.log('Starting seed script...');
+
+  const connectionString = process.env.DATABASE_URL || '';
+
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not defined in environment variables');
+  }
+
+  const pool = new Pool({ connectionString });
+
+  // Add error handler to prevent unhandled errors
+  pool.on('error', (err) => {
+    console.error('Unexpected error on idle client', err);
+  });
+
+  const adapter = new PrismaPg(pool);
+
+  const prisma = new PrismaClient({
+    adapter,
+    log: ['error', 'warn'],
+  });
+
+  console.log('Prisma client created.');
+  await prisma.$connect();
+  console.log('Connected to database.');
+
   try {
     // Create default category if not exists
     let defaultCategory = await prisma.category.findFirst({
@@ -54,7 +78,7 @@ async function runSeeds() {
     console.error('Error seeding database:', error);
   } finally {
     await prisma.$disconnect();
-    await app.close();
+    await pool.end();
   }
 }
 
