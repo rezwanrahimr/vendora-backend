@@ -1,6 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
-import { CreateSubscriptionPlanDto } from './dto/subscription.dto';
+import {
+  CreateSubscriptionPlanDto,
+  UpdateSubscriptionPlanDto,
+} from './dto/subscription-plan.dto';
 
 @Injectable()
 export class SubscriptionPlanService {
@@ -22,6 +29,29 @@ export class SubscriptionPlanService {
         price: data.price,
         durationInDays: data.durationInDays,
       },
+    });
+  }
+
+  async getSubscriptionPlan() {
+    return this.prisma.subscriptionPlan.findFirst();
+  }
+
+  async updateSubscriptionPlan(data: UpdateSubscriptionPlanDto, id: string) {
+    const plan = await this.prisma.subscriptionPlan.findUnique({
+      where: { id },
+    });
+
+    if (!plan) {
+      throw new NotFoundException('Subscription plan not found');
+    }
+
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([_, value]) => value !== undefined),
+    );
+
+    return this.prisma.subscriptionPlan.update({
+      where: { id },
+      data: cleanData,
     });
   }
 }

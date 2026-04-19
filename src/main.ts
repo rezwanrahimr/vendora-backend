@@ -57,7 +57,6 @@ async function bootstrap() {
       withCredentials: true, // Only enable if using cookie/session auth
       docExpansion: 'list',
       defaultModelsExpandDepth: 1,
-
       deepLinking: true, // Enables URL links per endpoint
       displayRequestDuration: true, // Show request timing for debugging
       showExtensions: false, // Optional: hide x-* extensions for cleaner UI
