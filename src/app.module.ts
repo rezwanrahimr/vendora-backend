@@ -16,6 +16,7 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { AdminGeneralModule } from './modules/admin-general/admin-general.module';
 import { AppHeroSliderModule } from './modules/app-hero-slider/app-hero-slider.module';
 import { UploadFileModule } from './common/upload-files/upload-file.module';
+import { SubscriptionPlanModule } from './modules/subscription-plan/subscription-plan.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -37,6 +38,7 @@ import configuration from './config/configuration';
     AdminGeneralModule,
     AppHeroSliderModule,
     UploadFileModule,
+    SubscriptionPlanModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
