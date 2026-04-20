@@ -32,6 +32,8 @@ model User {
   offerRedemptionEvents  OfferRedemptionEvent[]
   pushNotifications      PushNotification[]
   qrcodes                QRCode[]
+  subscriptions          Subscription[]
+  payments               Payment[]
 }
 
 model UserNotification {
@@ -207,17 +209,95 @@ model AppHeroSlider {
 }
 
 model SubscriptionPlan {
-  id          String  @id  @default(uuid())
+  id          String  @id @default(uuid())
   name        String
   description String?
 
-  price    Decimal @db.Decimal(10, 2)
-  durationInDays Int     @default(365) // in days
-
-
+  price          Decimal @db.Decimal(10, 2)
+  durationInDays Int
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id String @id @default(uuid())
+
+  userId String
+  planId String
+
+  startDate DateTime
+  endDate   DateTime
+
+  price      Decimal @db.Decimal(10, 2) // plan price at purchase time
+  finalPrice Decimal @db.Decimal(10, 2) // after discount
+
+  discountAmount Decimal?                  @db.Decimal(10, 2)
+  discountType   DiscountType?
+  paymentStatus  SubscriptionPaymentStatus @default(PENDING)
+  status         SubscriptionStatus        @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  SubscriptionPlan SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  payment Payment?
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+  @@index([endDate])
+}
+
+model Payment {
+  id String @id @default(uuid())
+
+  userId         String
+  subscriptionId String @unique
+
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @default("RSD") // default to Serbian Dinar
+
+  provider              String
+  providerTransactionId String? @unique
+
+  status PaymentStatus @default(PENDING)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Subscription Subscription @relation(fields: [subscriptionId], references: [id])
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum SubscriptionPaymentStatus {
+  PENDING
+  COMPLETED
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
 }
 
 enum NotificationType {
