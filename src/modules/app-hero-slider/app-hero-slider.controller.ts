@@ -27,22 +27,23 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
+import { UploadSingleImage } from 'src/common/upload-files/decorators/upload-file.decorator';
 
 @Controller('app-hero-slider')
 export class AppHeroSliderController {
   constructor(private readonly appHeroSliderService: AppHeroSliderService) {}
 
   @Post('add-image')
-  @ApiConsumes('multipart/form-data')
   @ApiBody({ type: AddImageDto })
   @ApiOperation({ summary: 'Add image, only admin can use' })
-  @UseInterceptors(
-    FileInterceptor('image', {
-      storage: appHeroSliderStorage,
-      fileFilter: imageFileFilter,
-    }),
-    FileSizeInterceptor,
-  )
+  // @UseInterceptors(
+  //   FileInterceptor('image', {
+  //     storage: appHeroSliderStorage,
+  //     fileFilter: imageFileFilter,
+  //   }),
+  //   FileSizeInterceptor,
+  // )
+  @UploadSingleImage('image')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth('JWT')

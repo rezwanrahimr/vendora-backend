@@ -53,7 +53,17 @@ async function bootstrap() {
 
   SwaggerModule.setup('doc', app, documentFactory, {
     swaggerOptions: {
-      persistAuthorization: true,
+    persistAuthorization: true, // Keep auth after reload
+      withCredentials: true, // Only enable if using cookie/session auth
+      docExpansion: 'list',
+      defaultModelsExpandDepth: 1,
+      deepLinking: true, // Enables URL links per endpoint
+      displayRequestDuration: true, // Show request timing for debugging
+      showExtensions: false, // Optional: hide x-* extensions for cleaner UI
+      filter: true,
+      tagsSorter: 'alpha', 
+      operationsSorter: 'alpha',
+
     },
   });
 
@@ -71,13 +81,16 @@ async function bootstrap() {
 
   // Add global API versioning prefix (excludes static files)
   app.setGlobalPrefix('api/v1', {
-    exclude: ['/uploads/*path'],
+    exclude: ['/uploads/*path',"/"],
+
   });
 
   await app.listen(process.env.PORT || 3000);
   console.log(
     `Application is running on: http://localhost:${process.env.PORT ?? 3000}`,
   );
+
+  console.log(`Swagger docs available at: http://localhost:${process.env.PORT ?? 3000}/doc`);
 }
 
 bootstrap().catch((err) => {

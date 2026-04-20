@@ -17,8 +17,8 @@ export class LoginDto {
 }
 ```
 
-* `@ApiProperty` adds description, example, and other metadata for Swagger.
-* NestJS will automatically generate the schema in Swagger UI.
+- `@ApiProperty` adds description, example, and other metadata for Swagger.
+- NestJS will automatically generate the schema in Swagger UI.
 
 ---
 
@@ -66,7 +66,12 @@ bootstrap();
 
 ```ts
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiSecurity } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
+} from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
@@ -97,36 +102,28 @@ export class AuthController {
 ## **4. Key Points**
 
 1. **DTO / Schema**
-
-   * Use `@ApiProperty` to describe fields.
-   * Swagger auto-generates schemas from your DTOs.
+   - Use `@ApiProperty` to describe fields.
+   - Swagger auto-generates schemas from your DTOs.
 
 2. **Security (Guard + Lock)**
-
-   * `@ApiSecurity('JWT')` links the endpoint to the JWT security scheme.
-   * Users enter the token via the Swagger **Authorize** button.
-   * The lock icon appears automatically.
+   - `@ApiSecurity('JWT')` links the endpoint to the JWT security scheme.
+   - Users enter the token via the Swagger **Authorize** button.
+   - The lock icon appears automatically.
 
 3. **Global vs Per-Endpoint**
-
-   * Define the scheme globally in `main.ts`.
-   * Apply `@ApiSecurity('JWT')` **per controller or per route**.
+   - Define the scheme globally in `main.ts`.
+   - Apply `@ApiSecurity('JWT')` **per controller or per route**.
 
 4. **Raw JWT**
-
-   * Use `type: 'apiKey', in: 'header', name: 'Authorization'` for raw JWT (no Bearer prefix).
-   * Prefill optional in `swaggerOptions.authAction` for testing.
+   - Use `type: 'apiKey', in: 'header', name: 'Authorization'` for raw JWT (no Bearer prefix).
+   - Prefill optional in `swaggerOptions.authAction` for testing.
 
 ---
 
 This setup gives you:
 
-* Swagger documentation with **schemas** (LoginDto, etc.)
-* **Lock icons** for protected endpoints
-* JWT security applied per route or globally
+- Swagger documentation with **schemas** (LoginDto, etc.)
+- **Lock icons** for protected endpoints
+- JWT security applied per route or globally
 
 ---
-
-If you want, I can also write a **ready-to-copy reusable decorator** for `@ApiSecurity + ApiHeader` so you don’t have to manually add it to every protected controller.
-
-Do you want me to do that?

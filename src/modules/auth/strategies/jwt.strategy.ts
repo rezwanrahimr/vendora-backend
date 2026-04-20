@@ -46,13 +46,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found');
     }
 
-    console.log('JWT Strategy - User found:', {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-    });
-
     // Remove password from user object
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;

@@ -1,61 +1,127 @@
 import 'dotenv/config';
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../app.module';
-import { PrismaService } from '../prisma.service';
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import * as bcrypt from 'bcrypt';
 
+console.log('Seed script loaded.');
+
+/* -----------------------------
+   Config
+------------------------------ */
+const config = {
+  dbUrl: process.env.DATABASE_URL,
+  adminEmail: process.env.ADMIN_EMAIL ?? 'admin@gmail.com',
+  adminPassword: process.env.ADMIN_PASSWORD ?? 'admin123',
+};
+
+/* -----------------------------
+   Prisma Setup
+------------------------------ */
+const createPrisma = () => {
+  if (!config.dbUrl) {
+    throw new Error('DATABASE_URL is not defined in environment variables');
+  }
+
+  const pool = new Pool({ connectionString: config.dbUrl });
+
+  pool.on('error', (err) => {
+    console.error('Unexpected error on idle client', err);
+  });
+
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg(pool),
+    log: ['error', 'warn'],
+  });
+
+  return { prisma, pool };
+};
+
+/* -----------------------------
+   Category Seed
+------------------------------ */
+const seedDefaultCategory = async (prisma: PrismaClient) => {
+  const existing = await prisma.category.findFirst({
+    where: { name: 'General' },
+  });
+
+  if (existing) {
+    console.log('Default category already exists.');
+    return existing;
+  }
+
+  const category = await prisma.category.create({
+    data: {
+      id: '00000000-0000-0000-0000-000000000000',
+      name: 'General',
+      icon: '🏪',
+    },
+  });
+
+  console.log('Default category created.');
+  return category;
+};
+
+/* -----------------------------
+   Admin Seed
+------------------------------ */
+const seedAdminUser = async (prisma: PrismaClient) => {
+  const existing = await prisma.user.findUnique({
+    where: { email: config.adminEmail },
+  });
+
+  if (existing) {
+    console.log('Admin user already exists.');
+    return existing;
+  }
+
+  const hashedPassword = await bcrypt.hash(config.adminPassword, 10);
+
+  const admin = await prisma.user.create({
+    data: {
+      name: 'Admin User',
+      email: config.adminEmail,
+      password: hashedPassword,
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      isEmailVerified: true,
+    },
+  });
+
+  console.log('Admin user created successfully.');
+  return admin;
+};
+
+/* -----------------------------
+   Main Seeder
+------------------------------ */
 async function runSeeds() {
-  const app = await NestFactory.createApplicationContext(AppModule);
-  const prisma = app.get(PrismaService);
+  console.log('Starting seed script...');
 
-  console.log('seeds');
+  const { prisma, pool } = createPrisma();
+
   try {
-    // Create default category if not exists
-    let defaultCategory = await prisma.category.findFirst({
-      where: { name: 'General' },
-    });
+    await prisma.$connect();
+    console.log('Connected to database.');
 
-    if (!defaultCategory) {
-      defaultCategory = await prisma.category.create({
-        data: {
-          id: '00000000-0000-0000-0000-000000000000',
-          name: 'General',
-          icon: '🏪',
-        },
-      });
-      console.log('Default category created.');
-    }
+    await seedDefaultCategory(prisma);
+    await seedAdminUser(prisma);
 
-    // Check if admin already exists
-    const existingAdmin = await prisma.user.findUnique({
-      where: { email: 'admin@gmail.com' },
-    });
-
-    if (existingAdmin) {
-      console.log('Admin user already exists. Skipping seeding.');
-    } else {
-      // Create admin user
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-
-      await prisma.user.create({
-        data: {
-          name: 'Admin User',
-          email: 'admin@gmail.com',
-          password: hashedPassword,
-          role: 'ADMIN',
-          status: 'ACTIVE',
-          isEmailVerified: true,
-        },
-      });
-
-      console.log('Admin user created successfully.');
-    }
+    console.log('Seeding completed successfully.');
   } catch (error) {
     console.error('Error seeding database:', error);
   } finally {
-    await prisma.$disconnect();
-    await app.close();
+    try {
+      await prisma.$disconnect();
+    } finally {
+      await pool.end();
+    }
   }
 }
 
-runSeeds().catch((error) => console.error(error));
+/* -----------------------------
+   Execute
+------------------------------ */
+runSeeds().catch((err) => {
+  console.error('Fatal seed error:', err);
+});

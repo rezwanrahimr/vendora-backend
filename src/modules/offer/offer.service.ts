@@ -482,10 +482,14 @@ export class OfferService {
     // 2️⃣ Fetch customer
     const customer = await this.prisma.user.findUnique({
       where: { email: customerEmail },
-      select: { id: true, email: true, name: true, status: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        status: true,
+        isSubscribed: true,
+      },
     });
-
-    // TODO: need to check subscription
 
     if (!customer) {
       throw new NotFoundException('Customer not found');
@@ -494,6 +498,12 @@ export class OfferService {
     if (customer.status !== 'ACTIVE') {
       throw new BadRequestException(
         'Customer is not active or suspended, unable to redeem',
+      );
+    }
+
+    if (!customer.isSubscribed) {
+      throw new BadRequestException(
+        'Customer subscription inactive, unable to redeem',
       );
     }
 
@@ -545,6 +555,7 @@ export class OfferService {
           const remainingDays = Math.ceil(
             (nextAvailable - Date.now()) / (1000 * 60 * 60 * 24),
           );
+          
           throw new BadRequestException(
             `Offer on cooldown, try in ${remainingDays} day(s)`,
           );
@@ -552,7 +563,7 @@ export class OfferService {
       }
 
       // 5️⃣ Max redemptions enforcement
-      const updated = await tx.offer.updateMany({
+      const updatedOffer = await tx.offer.updateMany({
         where: {
           id: offer.id,
           ...(offer.maxRedemptions
@@ -562,7 +573,7 @@ export class OfferService {
         data: { redeemedCount: { increment: 1 } },
       });
 
-      if (updated.count === 0) throw new BadRequestException('Offer maxed out');
+      if (updatedOffer.count === 0) throw new BadRequestException('Offer maxed out');
 
       // 6️⃣ Upsert redemption
       const redemption = await tx.offerRedemption.upsert({
@@ -592,7 +603,7 @@ export class OfferService {
         offer: {
           id: offer.id,
           title: offer.title,
-          redemptionCount: offer.redeemedCount,
+          redemptionCount: offer.redeemedCount + 1, // include this redemption
           maxRedemptions: offer.maxRedemptions,
         },
         redeemedAt: redemption.lastRedeemedAt,
@@ -645,7 +656,7 @@ export class OfferService {
   }
 
   async getNewestOffers(categoryId?: string, limit = 5) {
-    return this.prisma.offer.findMany({
+    return await this.prisma.offer.findMany({
       where: {
         isDeleted: false,
         ...(categoryId && {
@@ -672,7 +683,7 @@ export class OfferService {
     const since = new Date();
     since.setDate(since.getDate() - 7); // last 7 days
 
-    return this.prisma.offer.findMany({
+    return await this.prisma.offer.findMany({
       where: {
         isDeleted: false,
         ...(categoryId && {
