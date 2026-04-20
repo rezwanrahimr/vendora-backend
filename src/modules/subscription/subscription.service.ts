@@ -83,4 +83,62 @@ export class SubscriptionService {
       };
     });
   }
+
+  // TODO: This is a dummy checkout, later we will integrate nestpay
+ async checkoutPayment(paymentId: string, userId: string) {
+  const payment = await this.prisma.payment.findUnique({
+    where: { id: paymentId },
+    include: {
+      Subscription: true,
+    },
+  });
+
+  if (!payment) {
+    throw new NotFoundException('Payment not found');
+  }
+
+  // 🔒 Ownership check (via subscription)
+  if (payment.Subscription.userId !== userId) {
+    throw new BadRequestException('Unauthorized payment access');
+  }
+
+  // 🔒 Idempotency guard
+  if (payment.status === 'COMPLETED') {
+    return { message: 'Payment already completed' };
+  }
+
+  return this.prisma.$transaction(async (tx) => {
+    // 1. Mark payment as COMPLETED (dummy flow)
+    await tx.payment.update({
+      where: { id: paymentId },
+      data: {
+        status: 'COMPLETED',
+        providerTransactionId: `DUMMY_${Date.now()}`,
+      },
+    });
+
+    // 2. Activate subscription
+    await tx.subscription.update({
+      where: { id: payment.subscriptionId },
+      data: {
+        status: 'ACTIVE',
+        paymentStatus: 'COMPLETED',
+      },
+    });
+
+    // 3. Update user
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        isSubscribed: true,
+      },
+    });
+
+    return {
+      message: 'Payment processed successfully (dummy flow)',
+      paymentId,
+      subscriptionId: payment.subscriptionId,
+    };
+  });
+}
 }
