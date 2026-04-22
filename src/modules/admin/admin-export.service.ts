@@ -1,13 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { Parser } from "json2csv";
-import { AdminAnalyticsService } from "./admin-analytics.service";
+import { AdminDashboardService } from "./admin-dashboard.service";
 
 @Injectable()
 export class AdminExportService {
-  constructor(private analyticsService: AdminAnalyticsService) {}
+  constructor(private readonly dashboardService: AdminDashboardService) {}
 
   async exportRedemptionTrendsToCsv(year?: number): Promise<string> {
-    const data = await this.analyticsService.offerRedeemChart(year);
+    const data = await this.dashboardService.offerRedeemChart(year);
 
     const parser = new Parser({
       fields: [
@@ -20,7 +20,7 @@ export class AdminExportService {
   }
 
   async exportVendorPerformanceToCsv(): Promise<string> {
-    const data = await this.analyticsService.getTopPerformingVendors();
+    const data = await this.dashboardService.getTopPerformingVendors();
 
     const parser = new Parser({
       fields: [

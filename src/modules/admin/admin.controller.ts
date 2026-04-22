@@ -8,6 +8,7 @@ import {
   Patch,
   Body,
   Res,
+  ParseIntPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -25,7 +26,6 @@ import { UserRole } from 'src/common/enums/user-role.enum';
 import {
   ChangeVendorStatusDto,
   UpdateVendorProfileDto,
-  VendorUpdateDto,
 } from './dto/update-vendor.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Response } from 'express';
@@ -104,7 +104,7 @@ export class AdminController {
   @Get('/top-performing-vendors')
   @ApiOperation({ summary: 'Get top performing vendors' })
   async getTopPerformingVendors() {
-    return this.analyticsService.getTopPerformingVendors();
+    return this.dashboardService.getTopPerformingVendors();
   }
 
   @Get('/offer-redeem-chart')
@@ -113,7 +113,7 @@ export class AdminController {
   })
   @ApiQuery({ name: 'year', required: false, type: Number, example: 2025 })
   async offerRedeemChart(@Query('year') year?: number) {
-    return this.analyticsService.offerRedeemChart(year);
+    return this.dashboardService.offerRedeemChart(year);
   }
 
   @Get('dashboard/status')
@@ -268,5 +268,22 @@ export class AdminController {
     @Body() dto: ChangeVendorStatusDto,
   ) {
     return this.offersService.changeOfferStatus(id, dto.status);
+  }
+
+  @Get('revenue-overview-chart')
+  @ApiOperation({ summary: 'Get revenue overview chart' })
+  @ApiQuery({
+    name: 'year',
+    required: false,
+    description: 'Year for which to display revenue overview',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Revenue overview chart retrieved successfully',
+  })
+  revenueOverviewChart(
+    @Query('year', new ParseIntPipe({ optional: true })) year?: number,
+  ) {
+    return this.dashboardService.revenueOverviewChart(year);
   }
 }
