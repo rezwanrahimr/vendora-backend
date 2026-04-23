@@ -173,6 +173,99 @@ export class SubscriptionService {
     };
   }
 
+  async generateCheckoutForm(paymentId: string, userId: string): Promise<string> {
+    const checkoutData = await this.checkoutPayment(paymentId, userId);
+    const fields = checkoutData.fields as Record<string, string>;
+    const actionUrl = checkoutData.actionUrl;
+
+    let formHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Processing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        h2 {
+            color: #333;
+            margin: 0 0 10px;
+        }
+        p {
+            color: #666;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <h2>Processing Payment</h2>
+        <p>Redirecting to payment gateway...</p>
+    </div>
+
+    <form id="paymentForm" method="POST" action="${actionUrl}" style="display:none;">`;
+
+    // Add all hidden fields
+    for (const [key, value] of Object.entries(fields)) {
+      const escapedValue = String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      formHtml += `
+        <input type="hidden" name="${key}" value="${escapedValue}" />`;
+    }
+
+    formHtml += `
+    </form>
+
+    <script>
+        // Auto-submit the form when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('paymentForm').submit();
+        });
+        
+        // Fallback: submit after 1 second if JS is slow
+        setTimeout(function() {
+            const form = document.getElementById('paymentForm');
+            if (form && !form.submitted) {
+                form.submit();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>`;
+
+    return formHtml;
+  }
+
   async handlePaymentCallback(payload: Record<string, string>) {
     const oid = payload.oid || payload.Oid;
     if (!oid) {
