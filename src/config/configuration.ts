@@ -24,4 +24,16 @@ export default () => ({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
+  nestpay: {
+    gatewayUrl: process.env.NESTPAY_GATEWAY_URL,
+    clientId: process.env.NESTPAY_CLIENT_ID,
+    storeKey: process.env.NESTPAY_STORE_KEY,
+    okUrl: process.env.NESTPAY_OK_URL,
+    failUrl: process.env.NESTPAY_FAIL_URL,
+    currency: process.env.NESTPAY_CURRENCY || '941',
+    trantype: process.env.NESTPAY_TRANTYPE || 'PreAuth',
+    storetype: process.env.NESTPAY_STORETYPE || '3d_pay_hosting',
+    lang: process.env.NESTPAY_LANG || 'sr',
+    encoding: process.env.NESTPAY_ENCODING || 'utf-8',
+  },
 });
