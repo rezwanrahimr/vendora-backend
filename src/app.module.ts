@@ -18,6 +18,7 @@ import { AppHeroSliderModule } from './modules/app-hero-slider/app-hero-slider.m
 import { UploadFileModule } from './common/upload-files/upload-file.module';
 import { SubscriptionPlanModule } from './modules/subscription-plan/subscription-plan.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { PromoCodeModule } from './modules/promo-code/promo-code.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -41,6 +42,7 @@ import configuration from './config/configuration';
     UploadFileModule,
     SubscriptionPlanModule,
     SubscriptionModule,
+    PromoCodeModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

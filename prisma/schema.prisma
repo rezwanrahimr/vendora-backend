@@ -255,6 +255,26 @@ model Subscription {
   @@index([endDate])
 }
 
+model PromoCode {
+  id                 String          @id @default(uuid())
+  code               String          @unique
+  type               String
+  discountPercentage Decimal?        @db.Decimal(5, 2)
+  maxUsages          Int
+  usedCount          Int             @default(0)
+  expiryDate         DateTime
+  status             PromoCodeStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PromoCodeStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
 model Payment {
   id String @id @default(uuid())
 
@@ -265,9 +285,9 @@ model Payment {
   currency String  @default("RSD") // default to Serbian Dinar
 
   provider              String
-  providerTransactionId String? @unique
-  idempotencyKey String? @unique
-  status PaymentStatus @default(PENDING)
+  providerTransactionId String?       @unique
+  idempotencyKey        String?       @unique
+  status                PaymentStatus @default(PENDING)
 
   metadata Json?
 
