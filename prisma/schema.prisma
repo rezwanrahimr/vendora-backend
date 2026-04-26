@@ -266,7 +266,7 @@ model Payment {
 
   provider              String
   providerTransactionId String? @unique
-
+  idempotencyKey String? @unique
   status PaymentStatus @default(PENDING)
 
   metadata Json?
