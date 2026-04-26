@@ -19,14 +19,13 @@ export class CreateSubscriptionPlanDto {
   @IsNotEmpty()
   name!: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'Access to all premium features',
     description: 'Description of the subscription plan',
-    required: false,
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  description!: string;
+  description?: string;
 
   @ApiProperty({
     example: 999.99,
@@ -45,8 +44,23 @@ export class CreateSubscriptionPlanDto {
   @IsInt()
   @Min(1)
   durationInDays!: number;
-}
 
+  @ApiProperty({
+    example: 'USD',
+    description: 'Currency of the plan',
+  })
+  @IsString()
+  @IsNotEmpty()
+  currency!: string;
+
+  @ApiProperty({
+    example: '80 RSD/month',
+    description: 'Human-readable display price',
+  })
+  @IsString()
+  @IsNotEmpty()
+  currentPriceDisplay!: string;
+}
 
 export class UpdateSubscriptionPlanDto {
   @ApiPropertyOptional({
@@ -84,4 +98,20 @@ export class UpdateSubscriptionPlanDto {
   @Min(1)
   @IsOptional()
   durationInDays?: number;
+
+  @ApiPropertyOptional({
+    example: 'USD',
+    description: 'Currency of the plan',
+  })
+  @IsString()
+  @IsOptional()
+  currency?: string;
+
+  @ApiPropertyOptional({
+    example: '80 RSD/month',
+    description: 'Human-readable display price',
+  })
+  @IsString()
+  @IsOptional()
+  currentPriceDisplay?: string;
 }

@@ -209,12 +209,14 @@ model AppHeroSlider {
 }
 
 model SubscriptionPlan {
-  id          String  @id @default(uuid())
-  name        String
-  description String?
-
-  price          Decimal @db.Decimal(10, 2)
-  durationInDays Int
+  id                  String  @id @default(uuid())
+  name                String
+  description         String?
+  price               Decimal @db.Decimal(10, 2)
+  durationInDays      Int
+  currency            String  @default("RSD") // default to Serbian Dinar
+  currentPriceDisplay String  @default("0 RSD/month") // for display purposes, can be updated when price changes`
+  isActive            Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

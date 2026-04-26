@@ -139,7 +139,7 @@ export class SubscriptionService {
         metadata: {
           ...existingMetadata,
           nestpay: {
-            ...(this.asObject(existingMetadata.nestpay) as Record<string, unknown>),
+            ...this.asObject(existingMetadata.nestpay),
             lastInitAt: new Date().toISOString(),
             oid,
             rnd,
@@ -173,7 +173,10 @@ export class SubscriptionService {
     };
   }
 
-  async generateCheckoutForm(paymentId: string, userId: string): Promise<string> {
+  async generateCheckoutForm(
+    paymentId: string,
+    userId: string,
+  ): Promise<string> {
     const checkoutData = await this.checkoutPayment(paymentId, userId);
     const fields = checkoutData.fields as Record<string, string>;
     const actionUrl = checkoutData.actionUrl;
@@ -323,7 +326,7 @@ export class SubscriptionService {
           metadata: {
             ...existingMetadata,
             nestpay: {
-              ...(this.asObject(existingMetadata.nestpay) as Record<string, unknown>),
+              ...this.asObject(existingMetadata.nestpay),
               lastCallbackAt: new Date().toISOString(),
               callbackPayload: payload,
               callbackValidation: {
