@@ -34,6 +34,7 @@ model User {
   qrcodes                QRCode[]
   subscriptions          Subscription[]
   payments               Payment[]
+  promoCodeUsages        PromoCodeUsage[]
 }
 
 model UserNotification {
@@ -200,21 +201,24 @@ model QRCode {
 }
 
 model AppHeroSlider {
-  id        String   @id @default(uuid())
-  imageUrl  String
-  isActive  Boolean  @default(false)
-  order     Int      @default(1)
+  id       String  @id @default(uuid())
+  imageUrl String
+  isActive Boolean @default(false)
+  order    Int     @default(1)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model SubscriptionPlan {
-  id          String  @id @default(uuid())
-  name        String
-  description String?
-
-  price          Decimal @db.Decimal(10, 2)
-  durationInDays Int
+  id                  String  @id @default(uuid())
+  name                String
+  description         String?
+  price               Decimal @db.Decimal(10, 2)
+  durationInDays      Int
+  currency            String  @default("RSD") // default to Serbian Dinar
+  currentPriceDisplay String  @default("0 RSD/month") // for display purposes, can be updated when price changes`
+  isActive            Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -239,6 +243,9 @@ model Subscription {
   paymentStatus  SubscriptionPaymentStatus @default(PENDING)
   status         SubscriptionStatus        @default(PENDING)
 
+  isFree     Boolean @default(false) // to differentiate free subscriptions
+  freeReason String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -253,6 +260,46 @@ model Subscription {
   @@index([endDate])
 }
 
+model PromoCode {
+  id                 String          @id @default(uuid())
+  code               String          @unique
+  type               String
+  discountPercentage Decimal         @db.Decimal(5, 2)
+  maxUsages          Int
+  usedCount          Int             @default(0)
+  expiryDate         DateTime
+  status             PromoCodeStatus @default(ACTIVE)
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  promoCodeUsages PromoCodeUsage[]
+}
+
+model PromoCodeUsage {
+  id String @id @default(uuid())
+
+  promoCodeId String
+  userId      String
+
+  subscriptionId String?
+
+  discountAmount Decimal  @db.Decimal(10, 2)
+  usedAt         DateTime @default(now())
+
+  PromoCode PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([promoCodeId, userId]) // each user can use a specific promo code only once
+  @@index([promoCodeId])
+  @@index([userId])
+}
+
+enum PromoCodeStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
 model Payment {
   id String @id @default(uuid())
 
@@ -263,9 +310,9 @@ model Payment {
   currency String  @default("RSD") // default to Serbian Dinar
 
   provider              String
-  providerTransactionId String? @unique
-
-  status PaymentStatus @default(PENDING)
+  providerTransactionId String?       @unique
+  idempotencyKey        String?       @unique
+  status                PaymentStatus @default(PENDING)
 
   metadata Json?
 
@@ -286,6 +333,7 @@ enum PaymentStatus {
 enum SubscriptionPaymentStatus {
   PENDING
   COMPLETED
+  NOT_REQUIRED // for free subscriptions
 }
 
 enum SubscriptionStatus {
@@ -293,6 +341,7 @@ enum SubscriptionStatus {
   ACTIVE
   EXPIRED
   CANCELLED
+  COMPLETED
 }
 
 enum DiscountType {

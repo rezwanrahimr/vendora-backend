@@ -8,6 +8,7 @@ import {
   Patch,
   Body,
   Res,
+  ParseIntPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -25,10 +26,16 @@ import { UserRole } from 'src/common/enums/user-role.enum';
 import {
   ChangeVendorStatusDto,
   UpdateVendorProfileDto,
-  VendorUpdateDto,
 } from './dto/update-vendor.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Response } from 'express';
+
+import { AdminUserManagementsService } from './admin-user-managements.service';
+import { AdminVendorManagementService } from './admin-vendor-management.service';
+import { AdminOfferManagementService } from './admin-offer-management.service';
+import { AdminAnalyticsService } from './admin-analytics.service';
+import { AdminExportService } from './admin-export.service';
+import { AdminDashboardService } from './admin-dashboard.service';
 
 @ApiTags('Admin')
 @Controller('admin')
@@ -36,16 +43,24 @@ import { Response } from 'express';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private dashboardService: AdminDashboardService,
+    private usersService: AdminUserManagementsService,
+    private vendorsService: AdminVendorManagementService,
+    private offersService: AdminOfferManagementService,
+    private analyticsService: AdminAnalyticsService,
+    private exportsService: AdminExportService,
+  ) {}
 
   @Get('/offer-redemption-stats')
   async adminRedeemedOfferStats() {
-    return this.adminService.adminRedeemedOfferStats();
+    return this.analyticsService.adminRedeemedOfferStats();
   }
 
   @Get('/offer-type-distribution')
   async offerTypeDistribution() {
-    return this.adminService.offerTypeDistribution();
+    return this.analyticsService.offerTypeDistribution();
   }
 
   @Get('export-redemption-trends')
@@ -56,7 +71,7 @@ export class AdminController {
     @Query('year') year?: number,
   ) {
     // 1️⃣ Generate CSV from service
-    const csv = await this.adminService.exportRedemptionTrendsToCsv(year);
+    const csv = await this.exportsService.exportRedemptionTrendsToCsv(year);
 
     // 2️⃣ Set response headers to trigger download
     res.setHeader('Content-Type', 'text/csv');
@@ -73,7 +88,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Export vendor performance to CSV' })
   async exportVendorPerformanceToCsv(@Res() res: Response) {
     // 1️⃣ Generate CSV from service
-    const csv = await this.adminService.exportVendorPerformanceToCsv();
+    const csv = await this.exportsService.exportVendorPerformanceToCsv();
 
     // 2️⃣ Set response headers to trigger download
     res.setHeader('Content-Type', 'text/csv');
@@ -89,7 +104,7 @@ export class AdminController {
   @Get('/top-performing-vendors')
   @ApiOperation({ summary: 'Get top performing vendors' })
   async getTopPerformingVendors() {
-    return this.adminService.getTopPerformingVendors();
+    return this.dashboardService.getTopPerformingVendors();
   }
 
   @Get('/offer-redeem-chart')
@@ -98,7 +113,7 @@ export class AdminController {
   })
   @ApiQuery({ name: 'year', required: false, type: Number, example: 2025 })
   async offerRedeemChart(@Query('year') year?: number) {
-    return this.adminService.offerRedeemChart(year);
+    return this.dashboardService.offerRedeemChart(year);
   }
 
   @Get('dashboard/status')
@@ -108,7 +123,7 @@ export class AdminController {
     description: 'Dashboard status retrieved successfully',
   })
   dashboardStatus() {
-    return this.adminService.dashboardStatus();
+    return this.dashboardService.dashboardStatus();
   }
 
   @Get('me')
@@ -128,7 +143,7 @@ export class AdminController {
     description: 'Users status retrieved successfully',
   })
   usersStatus() {
-    return this.adminService.usersStatus();
+    return this.dashboardService.usersStatus();
   }
 
   @Get('users')
@@ -156,21 +171,21 @@ export class AdminController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
   ) {
-    return this.adminService.allUsers(search, parseInt(page), parseInt(limit));
+    return this.usersService.allUsers(search, parseInt(page), parseInt(limit));
   }
 
   @Patch('suspend-user/:id')
   @ApiOperation({ summary: 'Suspend a user by ID' })
   @ApiResponse({ status: 200, description: 'User suspended successfully' })
   suspendUser(@Param('id') id: string) {
-    return this.adminService.suspendUser(id);
+    return this.usersService.suspendUser(id);
   }
 
   @Delete('user/:id')
   @ApiOperation({ summary: 'Delete a user by ID' })
   @ApiResponse({ status: 200, description: 'User deleted successfully' })
   deleteUser(@Param('id') id: string) {
-    return this.adminService.deleteUser(id);
+    return this.usersService.deleteUser(id);
   }
 
   @Get('vendors')
@@ -198,7 +213,7 @@ export class AdminController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
   ) {
-    return this.adminService.allVendors(
+    return this.vendorsService.allVendors(
       search,
       parseInt(page),
       parseInt(limit),
@@ -209,7 +224,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Approve a vendor by ID' })
   @ApiResponse({ status: 200, description: 'Vendor approved successfully' })
   approvedVendor(@Param('id') id: string) {
-    return this.adminService.approvedVendor(id);
+    return this.vendorsService.approvedVendor(id);
   }
 
   // TODO: need to test after database update
@@ -217,7 +232,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Reject a vendor by ID' })
   @ApiResponse({ status: 200, description: 'Vendor rejected successfully' })
   rejectVendor(@Param('id') id: string) {
-    return this.adminService.rejectVendor(id);
+    return this.vendorsService.rejectVendor(id);
   }
 
   @Patch('vendor/:id')
@@ -227,14 +242,14 @@ export class AdminController {
     @Param('id') id: string,
     @Body() updateData: UpdateVendorProfileDto,
   ) {
-    return this.adminService.updateVendor(id, updateData);
+    return this.vendorsService.updateVendor(id, updateData);
   }
 
   @Delete('vendor/:id')
   @ApiOperation({ summary: 'Delete a vendor by ID' })
   @ApiResponse({ status: 200, description: 'Vendor deleted successfully' })
   deleteVendor(@Param('id') id: string) {
-    return this.adminService.deleteVendor(id);
+    return this.vendorsService.deleteVendor(id);
   }
 
   @Patch('/status/:id')
@@ -252,6 +267,23 @@ export class AdminController {
     @Param('id') id: string,
     @Body() dto: ChangeVendorStatusDto,
   ) {
-    return this.adminService.changeOfferStatus(id, dto.status);
+    return this.offersService.changeOfferStatus(id, dto.status);
+  }
+
+  @Get('revenue-overview-chart')
+  @ApiOperation({ summary: 'Get revenue overview chart' })
+  @ApiQuery({
+    name: 'year',
+    required: false,
+    description: 'Year for which to display revenue overview',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Revenue overview chart retrieved successfully',
+  })
+  revenueOverviewChart(
+    @Query('year', new ParseIntPipe({ optional: true })) year?: number,
+  ) {
+    return this.dashboardService.revenueOverviewChart(year);
   }
 }

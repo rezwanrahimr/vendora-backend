@@ -15,6 +15,62 @@ const config = {
   adminPassword: process.env.ADMIN_PASSWORD ?? 'admin123',
 };
 
+type SeedUser = {
+  name: string;
+  email: string;
+  password: string;
+  role: 'ADMIN' | 'VENDOR' | 'USER';
+};
+
+const seedUsers = async (prisma: PrismaClient) => {
+  const users: SeedUser[] = [
+    {
+      name: 'Admin User',
+      email: 'admin@e.com',
+      password: 'strongPassword123',
+      role: 'ADMIN',
+    },
+    {
+      name: 'Vendor User',
+      email: 'vendor@e.com',
+      password: 'strongPassword123',
+      role: 'VENDOR',
+    },
+    {
+      name: 'Regular User',
+      email: 'user@e.com',
+      password: 'strongPassword123',
+      role: 'USER',
+    },
+  ];
+
+  for (const user of users) {
+    const existing = await prisma.user.findUnique({
+      where: { email: user.email },
+    });
+
+    if (existing) {
+      console.log(`${user.role} already exists: ${user.email}`);
+      continue;
+    }
+
+    const hashedPassword = await bcrypt.hash(user.password, 10);
+
+    await prisma.user.create({
+      data: {
+        name: user.name,
+        email: user.email,
+        password: hashedPassword,
+        role: user.role,
+        status: 'ACTIVE',
+        isEmailVerified: true,
+      },
+    });
+
+    console.log(`${user.role} created: ${user.email}`);
+  }
+};
+
 /* -----------------------------
    Prisma Setup
 ------------------------------ */
@@ -105,7 +161,7 @@ async function runSeeds() {
     console.log('Connected to database.');
 
     await seedDefaultCategory(prisma);
-    await seedAdminUser(prisma);
+    await seedUsers(prisma);
 
     console.log('Seeding completed successfully.');
   } catch (error) {

@@ -41,6 +41,7 @@ export class OfferService {
     const vendor = await this.prisma.vendorProfile.findUnique({
       where: { id: payload.vendorId.toString() },
     });
+
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
     }
@@ -67,13 +68,12 @@ export class OfferService {
     }
 
     // Validate cooldownPeriod if reusable
-    if (
-      payload.isReusable &&
-      (payload.cooldownPeriod === undefined || payload.cooldownPeriod === null)
-    ) {
-      throw new BadRequestException(
-        'cooldownPeriod must be provided for reusable offers',
-      );
+    if (payload.isReusable) {
+      if (payload.cooldownPeriod == null || payload.cooldownPeriod <= 0) {
+        throw new BadRequestException(
+          'cooldownPeriod must be greater than 0 for reusable offers',
+        );
+      }
     }
 
     const today = new Date();
@@ -110,8 +110,8 @@ export class OfferService {
         isReusable: payload.isReusable ?? false,
         maxRedemptions: payload.maxRedemptions ?? null,
         cooldownPeriod: payload.cooldownPeriod ?? null,
-        validFrom,
-        validUntil,
+        validFrom: validFromDate,
+        validUntil: validUntilDate,
         status: OfferStatus.ACTIVE,
         isDeleted: false,
         thumbnail: imageUrl,
@@ -555,7 +555,7 @@ export class OfferService {
           const remainingDays = Math.ceil(
             (nextAvailable - Date.now()) / (1000 * 60 * 60 * 24),
           );
-          
+
           throw new BadRequestException(
             `Offer on cooldown, try in ${remainingDays} day(s)`,
           );
@@ -573,7 +573,8 @@ export class OfferService {
         data: { redeemedCount: { increment: 1 } },
       });
 
-      if (updatedOffer.count === 0) throw new BadRequestException('Offer maxed out');
+      if (updatedOffer.count === 0)
+        throw new BadRequestException('Offer maxed out');
 
       // 6️⃣ Upsert redemption
       const redemption = await tx.offerRedemption.upsert({

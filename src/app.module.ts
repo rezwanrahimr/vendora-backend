@@ -18,7 +18,10 @@ import { AppHeroSliderModule } from './modules/app-hero-slider/app-hero-slider.m
 import { UploadFileModule } from './common/upload-files/upload-file.module';
 import { SubscriptionPlanModule } from './modules/subscription-plan/subscription-plan.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { PromoCodeModule } from './modules/promo-code/promo-code.module';
+import { CronJobModule } from './jobs/cron-job.module';
 import configuration from './config/configuration';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -26,6 +29,7 @@ import configuration from './config/configuration';
       load: [configuration],
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     VendorsModule,
@@ -41,6 +45,8 @@ import configuration from './config/configuration';
     UploadFileModule,
     SubscriptionPlanModule,
     SubscriptionModule,
+    PromoCodeModule,
+    CronJobModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
