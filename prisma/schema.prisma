@@ -201,10 +201,11 @@ model QRCode {
 }
 
 model AppHeroSlider {
-  id        String   @id @default(uuid())
-  imageUrl  String
-  isActive  Boolean  @default(false)
-  order     Int      @default(1)
+  id       String  @id @default(uuid())
+  imageUrl String
+  isActive Boolean @default(false)
+  order    Int     @default(1)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -260,7 +261,7 @@ model PromoCode {
   id                 String          @id @default(uuid())
   code               String          @unique
   type               String
-  discountPercentage Decimal        @db.Decimal(5, 2)
+  discountPercentage Decimal         @db.Decimal(5, 2)
   maxUsages          Int
   usedCount          Int             @default(0)
   expiryDate         DateTime
@@ -285,9 +286,9 @@ model PromoCodeUsage {
   PromoCode PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
   User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([promoCodeId, userId]) // each user can use a specific promo code only once
   @@index([promoCodeId])
   @@index([userId])
-  @@unique([promoCodeId, userId]) // each user can use a specific promo code only once
 }
 
 enum PromoCodeStatus {
@@ -336,6 +337,7 @@ enum SubscriptionStatus {
   ACTIVE
   EXPIRED
   CANCELLED
+  COMPLETED
 }
 
 enum DiscountType {
