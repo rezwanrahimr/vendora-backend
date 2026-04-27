@@ -4,7 +4,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, SubscriptionPlan, User } from '@prisma/client';
+import {
+  Prisma,
+  SubscriptionPaymentStatus,
+  SubscriptionPlan,
+  SubscriptionStatus,
+  User,
+} from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from 'src/prisma.service';
 import {
@@ -197,44 +203,64 @@ export class SubscriptionService {
     );
 
     return this.prisma.$transaction(async (tx) => {
-      // 🔒 Check real active subscription (not just user flag)
-      const activeSub = await tx.subscription.findFirst({
+      // 🔒 Single optimized check (active OR free OR scheduled)
+      const existing = await tx.subscription.findFirst({
         where: {
           userId: user.id,
-          status: 'ACTIVE',
-          endDate: { gt: now },
+          OR: [
+            {
+              status: 'ACTIVE',
+              endDate: { gt: now },
+            },
+            {
+              isFree: true,
+              status: {
+                in: ['ACTIVE', 'PENDING'],
+              },
+            },
+            {
+              status: 'PENDING',
+            },
+          ],
         },
       });
 
-      if (activeSub) {
+      if (existing) {
         throw new BadRequestException(
-          'User already has an active subscription',
+          'User already has an active or scheduled subscription',
         );
       }
 
-      const status = startDate > now ? 'PENDING' : 'ACTIVE';
+      const status =
+        startDate > now
+          ? SubscriptionStatus.PENDING
+          : SubscriptionStatus.ACTIVE;
 
       const subscription = await tx.subscription.create({
         data: {
           userId: user.id,
           planId: plan.id,
+
           price: 0,
           finalPrice: 0,
           discountAmount: null,
+
           startDate,
           endDate,
+
           status,
-          paymentStatus: 'NOT_REQUIRED',
+          paymentStatus: SubscriptionPaymentStatus.NOT_REQUIRED,
+
           freeReason: payload.freeReason,
           isFree: true,
         },
       });
 
-      // ✅ Keep flag in sync (derived state)
+      // ⚠️ better to treat as derived state
       await tx.user.update({
         where: { id: user.id },
         data: {
-          isSubscribed: status === 'ACTIVE',
+          isSubscribed: true,
         },
       });
 
@@ -834,5 +860,90 @@ export class SubscriptionService {
         status: isSuccess ? 'COMPLETED' : 'FAILED',
       };
     });
+  }
+
+  async getSubscriptionDashboardData() {
+    const [
+      totalActiveSubscriptions,
+      totalActivePromoCodes,
+      totalActiveFreeSubscriptions,
+    ] = await Promise.all([
+      this.prisma.subscription.count({
+        where: { status: 'ACTIVE' },
+      }),
+      this.prisma.promoCode.count({
+        where: { status: 'ACTIVE' },
+      }),
+      this.prisma.subscription.count({
+        where: { status: 'ACTIVE', isFree: true },
+      }),
+    ]);
+
+    return {
+      totalActiveSubscriptions,
+      totalActivePromoCodes,
+      totalActiveFreeSubscriptions,
+    };
+  }
+
+  async getMySubscriptionHistory(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+  ) {
+
+
+
+limit = Math.min(100, Math.max(1, limit));
+
+    const where: Prisma.SubscriptionWhereInput = {
+      userId,
+    };
+
+    if (search) {
+      where.OR = [
+        {
+          SubscriptionPlan: {
+            name: { contains: search, mode: 'insensitive' },
+          },
+        },
+        {
+          SubscriptionPlan: {
+            description: { contains: search, mode: 'insensitive' },
+          },
+        },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [subscriptions, total] = await this.prisma.$transaction([
+      this.prisma.subscription.findMany({
+        where,
+        include: {
+          SubscriptionPlan: true,
+          payment: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.subscription.count({
+        where,
+      }),
+    ]);
+
+    return {
+      data: subscriptions,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }

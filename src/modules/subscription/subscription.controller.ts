@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -11,12 +12,15 @@ import { SubscriptionService } from './subscription.service';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import {
   FreeSubscriptionDto,
   SubscriptionCheckoutDto,
 } from './dto/subscription.dto';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { UserRole } from 'src/common/enums/user-role.enum';
 
 @ApiBearerAuth('JWT')
 @Controller('subscription')
@@ -87,5 +91,55 @@ export class SubscriptionController {
   })
   async paymentCallback(@Body() payload: Record<string, string>) {
     return this.subscriptionService.handlePaymentCallback(payload);
+  }
+
+  @Get('dashboard')
+  @ApiOperation({
+    summary: 'Get subscription dashboard data (admin only)',
+  })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async getDashboardData() {
+    return this.subscriptionService.getSubscriptionDashboardData();
+  }
+
+  @Get('history')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Get subscription history (user only)',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Items per page (default: 10)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    example: 'premium',
+    description: 'Search by subscription plan name or description',
+  })
+  async getSubscriptionHistory(
+    @CurrentUser() user: User,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.subscriptionService.getMySubscriptionHistory(
+      user.id,
+      Number(page) || 1,
+      Number(limit) || 10,
+      search,
+    );
   }
 }
