@@ -13,7 +13,10 @@ import { User } from '@prisma/client';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { Response } from 'express';
-import { SubscriptionCheckoutDto } from './dto/subscription.dto';
+import {
+  FreeSubscriptionDto,
+  SubscriptionCheckoutDto,
+} from './dto/subscription.dto';
 
 @ApiBearerAuth('JWT')
 @Controller('subscription')
@@ -44,6 +47,14 @@ export class SubscriptionController {
   //   return this.subscriptionService.checkoutPayment(paymentId, user.id);
   // }
 
+  @Post('free')
+  @ApiOperation({
+    summary: 'Grant a free subscription to a user (admin only)',
+  })
+  async giveFreeSubscription(@Body() payload: FreeSubscriptionDto) {
+    return this.subscriptionService.giveFreeSubscription(payload);
+  }
+
   @Post('subscribe/checkout')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
@@ -53,9 +64,6 @@ export class SubscriptionController {
     @CurrentUser() user: User,
     @Body() payload: SubscriptionCheckoutDto,
   ) {
-
-   
-
     return this.subscriptionService.subscribeAndCheckout(user.id, payload);
   }
 

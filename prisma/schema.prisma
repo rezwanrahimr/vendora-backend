@@ -243,6 +243,9 @@ model Subscription {
   paymentStatus  SubscriptionPaymentStatus @default(PENDING)
   status         SubscriptionStatus        @default(PENDING)
 
+  isFree     Boolean @default(false) // to differentiate free subscriptions
+  freeReason String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -330,6 +333,7 @@ enum PaymentStatus {
 enum SubscriptionPaymentStatus {
   PENDING
   COMPLETED
+  NOT_REQUIRED // for free subscriptions
 }
 
 enum SubscriptionStatus {

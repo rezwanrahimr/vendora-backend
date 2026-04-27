@@ -7,7 +7,10 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma, SubscriptionPlan, User } from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from 'src/prisma.service';
-import { SubscriptionCheckoutDto } from './dto/subscription.dto';
+import {
+  FreeSubscriptionDto,
+  SubscriptionCheckoutDto,
+} from './dto/subscription.dto';
 
 @Injectable()
 export class SubscriptionService {
@@ -178,6 +181,66 @@ export class SubscriptionService {
   //     },
   //   };
   // }
+
+  async giveFreeSubscription(payload: FreeSubscriptionDto) {
+    const user = await this.validateUser(payload.userId);
+    const plan = await this.validatePlan(payload.planId);
+
+    const now = new Date();
+
+    const startDate = payload.subscriptionStartDate
+      ? new Date(payload.subscriptionStartDate)
+      : now;
+
+    const endDate = new Date(
+      startDate.getTime() + plan.durationInDays * 24 * 60 * 60 * 1000,
+    );
+
+    return this.prisma.$transaction(async (tx) => {
+      // 🔒 Check real active subscription (not just user flag)
+      const activeSub = await tx.subscription.findFirst({
+        where: {
+          userId: user.id,
+          status: 'ACTIVE',
+          endDate: { gt: now },
+        },
+      });
+
+      if (activeSub) {
+        throw new BadRequestException(
+          'User already has an active subscription',
+        );
+      }
+
+      const status = startDate > now ? 'PENDING' : 'ACTIVE';
+
+      const subscription = await tx.subscription.create({
+        data: {
+          userId: user.id,
+          planId: plan.id,
+          price: 0,
+          finalPrice: 0,
+          discountAmount: null,
+          startDate,
+          endDate,
+          status,
+          paymentStatus: 'NOT_REQUIRED',
+          freeReason: payload.freeReason,
+          isFree: true,
+        },
+      });
+
+      // ✅ Keep flag in sync (derived state)
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          isSubscribed: status === 'ACTIVE',
+        },
+      });
+
+      return subscription;
+    });
+  }
 
   private getNestpayConfig() {
     const gatewayUrl = this.configService.get<string>('nestpay.gatewayUrl');
