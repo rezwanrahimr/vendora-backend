@@ -2,7 +2,9 @@ import {
   Body,
   Controller,
   DefaultValuePipe,
+  Delete,
   Get,
+  Param,
   ParseIntPipe,
   Patch,
   Post,
@@ -21,7 +23,8 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import { PromoCodeStatus } from '@prisma/client';
+import { PromoCodeStatus, User } from '@prisma/client';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 @ApiBearerAuth('JWT')
 @Controller('promo-code')
@@ -88,8 +91,47 @@ export class PromoCodeController {
       sortOrder,
     );
   }
+  @Get('my-usages')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Get my promotional discount code usages',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Items per page (default: 10)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    example: 'SAVE10',
+    description: 'Search by promo code',
+  })
+  async getMyPromoCodeUsages(
+    @CurrentUser() user: User,
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+    @Query('search') search?: string,
+  ) {
+    return this.promoCodeService.getMyPromoCodeUsages(
+      user.id,
+      Number(page),
+      Number(limit),
+      search,
+    );
+  }
 
-  @Get('code')
+  @Get(':code')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiParam({
@@ -103,7 +145,7 @@ export class PromoCodeController {
     description:
       'Allows an admin to retrieve details of a specific promo code using its unique code.',
   })
-  async getPromoCode(@Query('code') code: string) {
+  async getPromoCode(@Param('code') code: string) {
     return this.promoCodeService.getPromoCode(code);
   }
 
@@ -123,8 +165,26 @@ export class PromoCodeController {
   })
   async updatePromoCode(
     @Body() payload: UpdatePromoCodeDto,
-    @Query('id') id: string,
+    @Param('id') id: string,
   ) {
     return this.promoCodeService.updatePromoCode(id, payload);
+  }
+
+  @Delete(':id/delete')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Delete a promo code (Admin only)',
+    description:
+      'Allows an admin to delete a specific promo code based on its unique ID.',
+  })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: String,
+    description: 'Unique ID of the promo code to delete',
+  })
+  async deletePromoCode(@Param('id') id: string) {
+    return this.promoCodeService.deletePromoCode(id);
   }
 }

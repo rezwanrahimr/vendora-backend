@@ -166,4 +166,72 @@ export class PromoCodeService {
       data: updatePayload,
     });
   }
+
+  async deletePromoCode(id: string) {
+    const existing = await this.prisma.promoCode.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new NotFoundException(`Promo code with id "${id}" not found`);
+    }
+
+    return this.prisma.promoCode.delete({ where: { id } });
+  }
+
+  async getMyPromoCodeUsages(
+    userId: string,
+    page = 1,
+    limit = 10,
+    search?: string,
+  ) {
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.PromoCodeUsageWhereInput = {
+      userId,
+      ...(search
+        ? {
+            PromoCode: {
+              code: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          }
+        : {}),
+    };
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.promoCodeUsage.findMany({
+        where,
+        select: {
+          id: true,
+          usedAt: true,
+          discountAmount: true,
+          PromoCode: {
+            select: {
+              code: true,
+              type: true,
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: {
+          usedAt: 'desc',
+        },
+      }),
+      this.prisma.promoCodeUsage.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
 }

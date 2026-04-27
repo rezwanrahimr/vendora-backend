@@ -34,6 +34,7 @@ model User {
   qrcodes                QRCode[]
   subscriptions          Subscription[]
   payments               Payment[]
+  promoCodeUsages        PromoCodeUsage[]
 }
 
 model UserNotification {
@@ -259,14 +260,34 @@ model PromoCode {
   id                 String          @id @default(uuid())
   code               String          @unique
   type               String
-  discountPercentage Decimal?        @db.Decimal(5, 2)
+  discountPercentage Decimal        @db.Decimal(5, 2)
   maxUsages          Int
   usedCount          Int             @default(0)
   expiryDate         DateTime
   status             PromoCodeStatus @default(ACTIVE)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  promoCodeUsages PromoCodeUsage[]
+}
+
+model PromoCodeUsage {
+  id String @id @default(uuid())
+
+  promoCodeId String
+  userId      String
+
+  subscriptionId String?
+
+  discountAmount Decimal  @db.Decimal(10, 2)
+  usedAt         DateTime @default(now())
+
+  PromoCode PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([promoCodeId])
+  @@index([userId])
+  @@unique([promoCodeId, userId]) // each user can use a specific promo code only once
 }
 
 enum PromoCodeStatus {

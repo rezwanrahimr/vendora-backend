@@ -53,11 +53,10 @@ export class SubscriptionController {
     @CurrentUser() user: User,
     @Body() payload: SubscriptionCheckoutDto,
   ) {
-    return this.subscriptionService.subscribeAndCheckout(
-      user.id,
-      payload.subscriptionPlanId,
-      payload.idempotencyKey,
-    );
+
+   
+
+    return this.subscriptionService.subscribeAndCheckout(user.id, payload);
   }
 
   @UseGuards(JwtAuthGuard)

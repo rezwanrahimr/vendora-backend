@@ -1,5 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsUUID, Length } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsString,
+  IsNotEmpty,
+  IsUUID,
+  Length,
+  IsOptional,
+} from 'class-validator';
 
 export class SubscriptionCheckoutDto {
   @ApiProperty({
@@ -20,4 +26,13 @@ export class SubscriptionCheckoutDto {
   @IsNotEmpty()
   @IsUUID('4')
   idempotencyKey!: string;
+
+  @ApiPropertyOptional({
+    example: 'SAVE10',
+    description: 'Optional promo/discount code applied to the subscription',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(1, 50)
+  promoCode?: string;
 }
