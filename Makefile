@@ -9,8 +9,8 @@ seed:
 	npm run seed
 
 migrate:
-	@echo "🚀 Running migrations..."
-	npx prisma migrate dev
+	@echo "🚀 Running migrations ..."
+	npx prisma migrate dev && npx prisma generate
 
 generate:
 	@echo "⚙️  Generating Prisma client..."

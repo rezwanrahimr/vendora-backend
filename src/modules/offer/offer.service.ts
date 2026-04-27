@@ -41,6 +41,7 @@ export class OfferService {
     const vendor = await this.prisma.vendorProfile.findUnique({
       where: { id: payload.vendorId.toString() },
     });
+
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
     }

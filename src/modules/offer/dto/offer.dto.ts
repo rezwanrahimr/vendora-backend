@@ -26,7 +26,7 @@ export class CreateOfferDto {
   })
   @IsString()
   @IsNotEmpty()
-  title: string;
+  title!: string;
 
   // 👇 ADD THIS
   @ApiPropertyOptional({
@@ -42,7 +42,7 @@ export class CreateOfferDto {
   })
   @IsString()
   @IsNotEmpty()
-  description: string;
+  description!: string;
 
   @ApiPropertyOptional({
     example: false,
@@ -53,7 +53,7 @@ export class CreateOfferDto {
   @IsOptional()
   @IsBoolean()
   @ToBoolean()
-  isReusable?: boolean;
+  isReusable!: boolean;
 
   @ApiProperty({
     example: 'vendor-12345',
@@ -61,7 +61,7 @@ export class CreateOfferDto {
   })
   @IsString()
   @IsNotEmpty()
-  vendorId: string;
+  vendorId!: string;
 
   @ApiPropertyOptional({
     example: 100,
@@ -80,7 +80,7 @@ export class CreateOfferDto {
     example: OfferType.DISCOUNT,
     description: 'Type of the offer',
   })
-  type: OfferType;
+  type!: OfferType;
 
   @ApiPropertyOptional({
     example: '2025-01-01T00:00:00.000Z',
@@ -94,7 +94,7 @@ export class CreateOfferDto {
     example: '2025-01-31T23:59:59.000Z',
     description: 'Offer expiration date (ISO 8601 format)',
   })
-  validUntil: string | Date;
+  validUntil!: string | Date;
 
   @ApiPropertyOptional({
     example: 30,
@@ -132,7 +132,7 @@ export class UpdateOfferStatusDto {
     enum: OfferStatus,
     example: OfferStatus.ACTIVE,
   })
-  status: OfferStatus;
+  status!: OfferStatus;
 }
 
 export class GetOffersQueryDto {
@@ -268,7 +268,7 @@ export class RedeemOfferDto {
   })
   @IsString()
   @IsNotEmpty()
-  qrToken: string;
+  qrToken!: string;
 
   @ApiProperty({
     example: 'customer@example.com',
@@ -276,7 +276,7 @@ export class RedeemOfferDto {
   })
   @IsEmail()
   @IsNotEmpty()
-  customerEmail: string;
+  customerEmail!: string;
 }
 
 export class GetOfferByCategoryIdDto {
@@ -411,5 +411,5 @@ export class GenerateQrCodeDto {
   })
   @IsString()
   @IsNotEmpty()
-  offerId: string;
+  offerId!: string;
 }
