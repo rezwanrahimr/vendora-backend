@@ -1,32 +1,60 @@
+# -----------------------------
+# 1. Builder Stage
+# -----------------------------
 FROM node:24-alpine AS builder
+
 WORKDIR /app
 
+# Prisma + build dependencies
+RUN apk add --no-cache openssl
 
+# Copy dependency files first (better caching)
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm install --force
+# Install all dependencies (including dev)
+RUN npm ci
 
+# Copy source code
 COPY . .
 
-ENV DATABASE_URL=postgres://$PG_USERNAME:$PG_PASSWORD@$PG_HOST:$PG_PORT/$PG_DATABASE?schema=public
+# Dummy DB URL (kept as requested)
+ENV DATABASE_URL="database_url_placeholder"
 
+# Generate Prisma client
 RUN npx prisma generate
 
+# Build application
 RUN npm run build
 
 
-FROM node:24-alpine
+# -----------------------------
+# 2. Production Stage
+# -----------------------------
+FROM node:24-alpine AS runner
+
 WORKDIR /app
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+# Runtime dependencies for Prisma
+RUN apk add --no-cache openssl
 
+# Keep dummy DB (as requested)
+ENV DATABASE_URL="database_url_placeholder"
 ENV NODE_ENV=production
+
+# Copy dependency files first
+COPY package*.json ./
+
+# Install production dependencies
+RUN npm ci --omit=dev
+
+# Copy built output + prisma schema
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+
+# Generate Prisma client in runtime (after deps installed)
+RUN npx prisma generate
+
 EXPOSE 3000
 
-# Run migrations and start app
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
+CMD ["node", "dist/src/main.js"]
