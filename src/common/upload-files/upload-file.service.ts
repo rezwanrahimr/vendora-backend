@@ -70,6 +70,7 @@ export class UploadFileService {
           Key: key,
           Body: file.buffer,
           ContentType: file.mimetype,
+          // ACL: 'public-read',
         },
       }).done();
 

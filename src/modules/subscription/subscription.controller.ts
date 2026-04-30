@@ -1,8 +1,11 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
   Param,
+  ParseIntPipe,
+  Patch,
   Post,
   Query,
   Res,
@@ -12,7 +15,12 @@ import { SubscriptionService } from './subscription.service';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Response } from 'express';
 import {
   FreeSubscriptionDto,
@@ -141,5 +149,59 @@ export class SubscriptionController {
       Number(limit) || 10,
       search,
     );
+  }
+
+  @Get('free')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Get free subscriptions (admin only)',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Items per page (default: 10)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    example: 'trial',
+    description:
+      'Search by user email, plan name, or free reason for free subscriptions',
+  })
+  async getFreeSubscriptions(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+  ) {
+    return this.subscriptionService.getFreeSubscriptions(search, page, limit);
+  }
+
+  @Patch('free/:subscriptionId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Remove a free subscription (admin only)',
+  })
+  @ApiParam({
+    name: 'subscriptionId',
+    type: String,
+    description: 'ID of the subscription to remove',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  async removeFreeSubscription(
+    @Param('subscriptionId') subscriptionId: string,
+  ) {
+    return this.subscriptionService.removeFreeSubscription(subscriptionId);
   }
 }

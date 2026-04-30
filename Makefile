@@ -40,3 +40,9 @@ docker-down:
 docker-restart:
 	@echo "🔄 Restarting containers..."
 	docker compose down && docker compose up -d --force-recreate
+
+
+docker-release:
+	@echo "🚀 Building and pushing Docker image..."
+	docker build -t softvence/vendora-backend:latest .
+	docker push softvence/vendora-backend:latest

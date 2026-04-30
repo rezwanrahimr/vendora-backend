@@ -7,22 +7,14 @@ import {
   Post,
   UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import { AppHeroSliderService } from './app-hero-slider.service';
 import {
   ApiBearerAuth,
   ApiBody,
-  ApiConsumes,
   ApiOperation,
 } from '@nestjs/swagger';
 import { AddImageDto, ManageImageDto } from './dto/app-hero-slider.dto';
-import {
-  appHeroSliderStorage,
-  imageFileFilter,
-} from 'src/common/utils/file-upload.utils';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { FileSizeInterceptor } from 'src/common/interceptors/file-size.interceptor';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -36,13 +28,6 @@ export class AppHeroSliderController {
   @Post('add-image')
   @ApiBody({ type: AddImageDto })
   @ApiOperation({ summary: 'Add image, only admin can use' })
-  // @UseInterceptors(
-  //   FileInterceptor('image', {
-  //     storage: appHeroSliderStorage,
-  //     fileFilter: imageFileFilter,
-  //   }),
-  //   FileSizeInterceptor,
-  // )
   @UploadSingleImage('image')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)

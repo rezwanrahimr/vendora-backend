@@ -5,10 +5,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { getDay, getHours } from 'date-fns';
+import { UploadFileService } from 'src/common/upload-files/upload-file.service';
 
 @Injectable()
 export class VendorsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private readonly uploadFileService: UploadFileService) {}
 
   // async findAll() {
   //   return this.prisma.user.findMany({
@@ -791,7 +792,14 @@ export class VendorsService {
       throw new BadRequestException('Please upload an image file');
     }
 
-    const imageUrl = `/uploads/vendors/logos/${file.filename}`;
+    const imageUrl = await this.uploadFileService.uploadSingle(
+      file,
+      'vendor-logo',
+    );
+
+    if (!imageUrl?.url) {
+      throw new BadRequestException('Failed to upload image');
+    }
 
     const vendor = await this.prisma.vendorProfile.findUnique({
       where: { userId: userId.toString() },
@@ -803,7 +811,7 @@ export class VendorsService {
 
     return await this.prisma.vendorProfile.update({
       where: { id: vendor.id },
-      data: { logoUrl: imageUrl },
+      data: { logoUrl: imageUrl.url },
     });
   }
 }

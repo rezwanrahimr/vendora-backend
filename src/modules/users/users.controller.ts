@@ -5,14 +5,11 @@ import {
   Patch,
   Delete,
   Body,
-  ParseIntPipe,
   UseGuards,
   Post,
-  UseInterceptors,
   UploadedFile,
-  BadRequestException,
+
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -28,15 +25,12 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import {
-  userImageStorage,
-  imageFileFilter,
-} from '../../common/utils/file-upload.utils';
-import { FileSizeInterceptor } from '../../common/interceptors/file-size.interceptor';
+
 import { UploadImageDto, ImageUploadResponseDto } from './dto/upload-image.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { RegisterFcmTokenDto, RemoveFcmTokenDto } from '../notification/dto';
+import { UploadSingleImage } from 'src/common/upload-files/decorators/upload-file.decorator';
 
 @Controller('users')
 @ApiTags('Users')
@@ -54,7 +48,7 @@ export class UsersController {
 
   @Post('upload-image')
   @ApiOperation({ summary: 'Upload user profile image' })
-  @ApiConsumes('multipart/form-data')
+  // @ApiConsumes('multipart/form-data')
   @ApiBody({ type: UploadImageDto })
   @ApiResponse({
     status: 200,
@@ -62,22 +56,19 @@ export class UsersController {
     type: ImageUploadResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid file type or size' })
-  @UseInterceptors(
-    FileInterceptor('image', {
-      storage: userImageStorage,
-      fileFilter: imageFileFilter,
-    }),
-    FileSizeInterceptor,
-  )
+  // @UseInterceptors(
+  //   FileInterceptor('image', {
+  //     storage: userImageStorage,
+  //     fileFilter: imageFileFilter,
+  //   }),
+  //   FileSizeInterceptor,
+  // )
+  @UploadSingleImage('image')
   async uploadImage(
     @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) {
-      throw new BadRequestException('Please upload an image file');
-    }
-
-    return this.usersService.uploadUserImage(user.id, file.filename);
+    return this.usersService.uploadUserImage(user.id, file);
   }
 
   @Delete('delete-image')
