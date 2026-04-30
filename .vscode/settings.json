@@ -25,5 +25,6 @@
     "yasminaarsic",
     "yourpassword"
   ],
-  "material-icon-theme.activeIconPack": "nest"
+  "material-icon-theme.activeIconPack": "nest",
+  "makefile.configureOnOpen": false
 }

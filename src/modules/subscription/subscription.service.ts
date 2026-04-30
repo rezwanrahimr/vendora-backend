@@ -892,10 +892,7 @@ export class SubscriptionService {
     limit: number = 10,
     search?: string,
   ) {
-
-
-
-limit = Math.min(100, Math.max(1, limit));
+    limit = Math.min(100, Math.max(1, limit));
 
     const where: Prisma.SubscriptionWhereInput = {
       userId,
@@ -944,6 +941,110 @@ limit = Math.min(100, Math.max(1, limit));
         limit,
         totalPages: Math.ceil(total / limit),
       },
+    };
+  }
+
+  async getFreeSubscriptions(
+    search?: string,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    page = Math.max(1, page);
+    limit = Math.max(1, Math.min(100, limit));
+
+    const where: Prisma.SubscriptionWhereInput = {
+      isFree: true,
+    };
+
+    if (search) {
+      where.OR = [
+        {
+          SubscriptionPlan: {
+            is: {
+              OR: [
+                { name: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
+              ],
+            },
+          },
+        },
+        {
+          freeReason: { contains: search, mode: 'insensitive' },
+        },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [subscriptions, total] = await this.prisma.$transaction([
+      this.prisma.subscription.findMany({
+        where,
+        include: {
+          SubscriptionPlan: true,
+          User: {
+            omit: {
+              password: true,
+              fcmTokens: true,
+              createdAt: true,
+              updatedAt: true,
+              isDeleted: true,
+              deletedAt: true,
+              status: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.subscription.count({ where }),
+    ]);
+
+    return {
+      data: subscriptions,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async removeFreeSubscription(subscriptionId: string) {
+    const subscription = await this.prisma.subscription.findFirst({
+      where: {
+        id: subscriptionId,
+        isFree: true,
+      },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException('Free subscription not found');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.subscription.update({
+        where: { id: subscriptionId },
+        data: {
+          status: 'CANCELLED',
+          endDate: new Date(),
+        },
+      });
+
+      await tx.user.update({
+        where: { id: subscription.userId },
+        data: {
+          isSubscribed: false,
+        },
+      });
+    });
+
+    return {
+      message: 'Free subscription removed successfully',
+      subscriptionId,
     };
   }
 }
