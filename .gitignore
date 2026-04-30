@@ -62,3 +62,4 @@ pnpm-workspace.yaml
 pnpm-lock.yaml
 
 
+.env.production
