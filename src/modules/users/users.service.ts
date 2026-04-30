@@ -6,6 +6,7 @@ import { join } from 'path';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { SuccessResponse } from '../../common/dto/response.dto';
+import { UploadFileService } from 'src/common/upload-files/upload-file.service';
 
 interface FcmToken {
   token: string;
@@ -16,7 +17,7 @@ interface FcmToken {
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private readonly uploadFileService: UploadFileService ) {}
 
   /**
    * Helper method to safely parse FCM tokens from JSON field
@@ -96,30 +97,20 @@ export class UsersService {
     });
   }
 
-  async uploadUserImage(userId: string, filename: string) {
+  async uploadUserImage(userId: string, file: Express.Multer.File) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    // Delete old image if exists
-    if (user.imageUrl) {
-      const oldImagePath = join(process.cwd(), user.imageUrl);
-      if (existsSync(oldImagePath)) {
-        try {
-          await unlink(oldImagePath);
-        } catch (error) {
-          console.error('Error deleting old image:', error);
-        }
-      }
-    }
+
 
     // Update user with new image URL
-    const imageUrl = `/uploads/users/images/${filename}`;
+    const imageUrl = await this.uploadFileService.uploadSingle(file, 'user');
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
-      data: { imageUrl },
+      data: { imageUrl : imageUrl.url },
       select: {
         id: true,
         email: true,

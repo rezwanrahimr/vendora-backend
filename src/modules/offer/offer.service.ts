@@ -18,14 +18,13 @@ import {
 import { OfferStatus, Prisma } from '@prisma/client';
 import { PushNotificationService } from '../notification/push-notification.service';
 import { NotificationType } from '../notification/dto';
-import fs from 'fs';
-import path from 'path';
 import { randomBytes } from 'crypto';
+import { UploadFileService } from 'src/common/upload-files/upload-file.service';
 
 @Injectable()
 export class OfferService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, private readonly uploadFileService: UploadFileService,
     @Inject(forwardRef(() => PushNotificationService))
     private readonly pushNotificationService: PushNotificationService,
   ) {}
@@ -35,7 +34,7 @@ export class OfferService {
       throw new BadRequestException('Image is required');
     }
 
-    const imageUrl = `/uploads/category/images/${file.filename}`;
+    const imageUrl = await this.uploadFileService.uploadSingle(file, 'offer')
 
     // Check if vendor exists
     const vendor = await this.prisma.vendorProfile.findUnique({
@@ -114,7 +113,7 @@ export class OfferService {
         validUntil: validUntilDate,
         status: OfferStatus.ACTIVE,
         isDeleted: false,
-        thumbnail: imageUrl,
+        thumbnail: imageUrl.url,
         termsAndConditions: payload.termsAndConditions?.trim(),
         estimatedValue: payload.estimatedValue ?? 0,
       },
@@ -360,20 +359,8 @@ export class OfferService {
 
     // 3️⃣ Handle image update (replace thumbnail)
     if (file) {
-      // Delete old image if exists
-      if (offer.thumbnail) {
-        const oldImagePath = path.join(
-          process.cwd(),
-          offer.thumbnail.replace(/^\/+/, ''),
-        );
-
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
-      }
-
-      // Save new image path
-      data.thumbnail = `/uploads/offer/images/${file.filename}`;
+ const url=await this.uploadFileService.uploadSingle(file, 'offer')
+      data.thumbnail = url.url;
     }
 
     // 4️⃣ Date normalization

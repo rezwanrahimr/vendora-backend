@@ -9,11 +9,9 @@ import {
   Query,
   UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
-  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -35,12 +33,7 @@ import { OfferService } from './offer.service';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { FileSizeInterceptor } from 'src/common/interceptors/file-size.interceptor';
-import {
-  imageFileFilter,
-  offerImageStorage,
-} from 'src/common/utils/file-upload.utils';
+import { UploadSingleImage } from 'src/common/upload-files/decorators/upload-file.decorator';
 
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT')
@@ -61,14 +54,7 @@ export class OfferController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create an offer, requires admin' })
   @Post('/create')
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(
-    FileInterceptor('image', {
-      storage: offerImageStorage,
-      fileFilter: imageFileFilter,
-    }),
-    FileSizeInterceptor,
-  )
+ @UploadSingleImage('image')
   create(
     @Body() createOfferDto: CreateOfferDto,
     @UploadedFile() file?: Express.Multer.File,
@@ -195,14 +181,8 @@ export class OfferController {
     type: String,
     description: 'Offer ID to update',
   })
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(
-    FileInterceptor('image', {
-      storage: offerImageStorage,
-      fileFilter: imageFileFilter,
-    }),
-    FileSizeInterceptor,
-  )
+
+    @UploadSingleImage('image')
   @ApiResponse({
     status: 200,
     description: 'Offer updated successfully',

@@ -6,17 +6,22 @@ import {
 } from './dto/app-hero-slider.dto';
 import { UploadFileService } from 'src/common/upload-files/upload-file.service';
 
-
 @Injectable()
 export class AppHeroSliderService {
-  constructor(private readonly prisma: PrismaService, private readonly uploadFileService: UploadFileService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadFileService: UploadFileService,
+  ) {}
 
   async addImage(file?: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('Please upload an image file');
     }
 
-    const uploadedImage = await this.uploadFileService.uploadSingle(file, 'app-hero-slider');
+    const uploadedImage = await this.uploadFileService.uploadSingle(
+      file,
+      'app-hero-slider',
+    );
 
     if (!uploadedImage?.url) {
       throw new BadRequestException('Failed to upload image');

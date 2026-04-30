@@ -28,12 +28,10 @@ import {
 import { Response } from 'express';
 import { ImageUploadResponseDto } from '../users/dto/upload-image.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import {
-  imageFileFilter,
-  vendorLogoStorage,
-} from 'src/common/utils/file-upload.utils';
-import { FileSizeInterceptor } from 'src/common/interceptors/file-size.interceptor';
+
+
 import { UpdateVendorProfileDto } from './vendor.dto';
+import { UploadSingleImage } from 'src/common/upload-files/decorators/upload-file.decorator';
 
 @Controller('vendors')
 @ApiSecurity('JWT') // Apply JWT security scheme to all endpoints in this controller
@@ -43,31 +41,20 @@ export class VendorsController {
 
   @Patch('/upload-logo')
   @ApiOperation({ summary: 'Upload vendor logo, vendor only' })
-  @ApiConsumes('multipart/form-data')
   @ApiResponse({
     status: 200,
     description: 'Image uploaded successfully',
     type: ImageUploadResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid file type or size' })
-  @UseInterceptors(
-    FileInterceptor('image', {
-      storage: vendorLogoStorage,
-      fileFilter: imageFileFilter,
-    }),
-    FileSizeInterceptor,
-  )
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        image: {
-          type: 'string',
-          format: 'binary',
-        },
-      },
-    },
-  })
+  // @UseInterceptors(
+  //   FileInterceptor('image', {
+  //     storage: vendorLogoStorage,
+  //     fileFilter: imageFileFilter,
+  //   }),
+  //   FileSizeInterceptor,
+  // )
+  @UploadSingleImage('image')
   async uploadLogo(
     @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,
@@ -77,33 +64,15 @@ export class VendorsController {
 
   @Patch('/upload-logo/:id')
   @ApiOperation({ summary: 'Upload  vendor logo, admin only' })
-  @ApiConsumes('multipart/form-data')
   @ApiResponse({
     status: 200,
     description: 'Image uploaded successfully',
     type: ImageUploadResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid file type or size' })
-  @UseInterceptors(
-    FileInterceptor('image', {
-      storage: vendorLogoStorage,
-      fileFilter: imageFileFilter,
-    }),
-    FileSizeInterceptor,
-  )
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        image: {
-          type: 'string',
-          format: 'binary',
-        },
-      },
-    },
-  })
   @ApiParam({ name: 'id', type: 'string', description: 'Vendor user ID' })
   @Roles(UserRole.ADMIN)
+  @UploadSingleImage("image")
   @UseGuards(RolesGuard)
   async uploadLogoByAdmin(
     @Param('id') id: string,
