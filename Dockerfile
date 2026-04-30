@@ -48,13 +48,17 @@ COPY package*.json ./
 # Install production dependencies
 RUN npm ci --omit=dev
 
-# Copy built output + prisma schema
+# Copy built output + prisma schema + Prisma config
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
 # Generate Prisma client in runtime (after deps installed)
 RUN npx prisma generate
 
-EXPOSE 3000
+EXPOSE 5000
 
-CMD ["node", "dist/src/main.js"]
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+CMD ["./entrypoint.sh"]
