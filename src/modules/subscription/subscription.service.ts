@@ -988,7 +988,6 @@ export class SubscriptionService {
               createdAt: true,
               updatedAt: true,
               isDeleted: true,
-              deletedAt: true,
               status: true,
             },
           },

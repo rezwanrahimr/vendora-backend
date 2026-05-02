@@ -286,4 +286,46 @@ export class AdminController {
   ) {
     return this.dashboardService.revenueOverviewChart(year);
   }
+
+  @Get('get-reports-analytics-data')
+  @ApiOperation({ summary: 'Get reports analytics data' })
+  async getReportsAnalyticsData() {
+    return await this.dashboardService.getReportsAnalyticsData();
+  }
+
+  @Get('revenue-break-down-by-month')
+  @ApiQuery({
+    name: 'year',
+    required: false,
+    description:
+      'Year for which to display revenue breakdown by month, defaults to current year',
+  })
+  @ApiOperation({ summary: 'Get revenue breakdown by month' })
+  revenueBreakDownByMonth(
+    @Query('year', new ParseIntPipe({ optional: true })) year?: number,
+  ) {
+    return this.dashboardService.revenueBreakDownByMonth(year);
+  }
+
+  @Get('export-revenue-overview-to-csv')
+  @ApiOperation({ summary: 'Export revenue overview to CSV' })
+  @ApiQuery({
+    name: 'year',
+    required: false,
+    description:
+      'Year for which to export revenue overview, defaults to current year',
+  })
+  async exportRevenueOverviewToCsv(
+    @Query('year', new ParseIntPipe({ optional: true })) year: number,
+    @Res() res: Response,
+  ) {
+    const csv = await this.dashboardService.exportRevenueOverviewToCsv(year);
+
+    const fileName = `revenue-overview-${year ?? new Date().getFullYear()}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    return res.send(csv);
+  }
 }

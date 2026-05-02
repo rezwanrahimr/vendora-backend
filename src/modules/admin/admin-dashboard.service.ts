@@ -1,5 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { format, getMonth } from 'date-fns';
+import { Decimal } from '@prisma/client/runtime/client';
+import {
+  endOfMonth,
+  endOfYear,
+  format,
+  getMonth,
+  parseISO,
+  startOfMonth,
+  startOfYear,
+  subMonths,
+} from 'date-fns';
+import { Parser } from 'json2csv';
 import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
@@ -232,35 +243,6 @@ export class AdminDashboardService {
   async revenueOverviewChart(year?: number) {
     const targetYear = year ?? new Date().getFullYear();
 
-    const startDate = new Date(targetYear, 0, 1);
-    const endDate = new Date(targetYear + 1, 0, 1);
-
-    // 1️⃣ Fetch payments in range
-    const payments = await this.prisma.payment.findMany({
-      where: {
-        createdAt: {
-          gte: startDate,
-          lt: endDate,
-        },
-      },
-      select: {
-        amount: true,
-        createdAt: true,
-      },
-    });
-
-    // 2️⃣ Aggregate by month (using date-fns format)
-    const monthlyMap = new Map<string, number>();
-
-    for (const payment of payments) {
-      const monthKey = format(payment.createdAt, 'MMM'); // Jan, Feb, Mar...
-
-      const amount = Number(payment.amount);
-
-      monthlyMap.set(monthKey, (monthlyMap.get(monthKey) || 0) + amount);
-    }
-
-    // 3️⃣ Ensure all months exist in order
     const months = [
       'Jan',
       'Feb',
@@ -276,15 +258,201 @@ export class AdminDashboardService {
       'Dec',
     ];
 
-    const chartData = months.map((month) => ({
-      month,
-      revenue: monthlyMap.get(month) || 0,
+    const startDate = startOfYear(new Date(targetYear, 0, 1));
+    const endDate = endOfYear(new Date(targetYear, 0, 1));
+
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        status: 'COMPLETED',
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        amount: true,
+        createdAt: true,
+      },
+    });
+
+    // 1️⃣ fixed 12-month array
+    const monthlyRevenue = Array(12).fill(0);
+
+    for (const payment of payments) {
+      const monthIndex = getMonth(payment.createdAt); // 0–11
+      monthlyRevenue[monthIndex] += Number(payment.amount);
+    }
+
+    const chartData = monthlyRevenue.map((revenue, index) => ({
+      month: months[index],
+      revenue,
     }));
 
-    // 4️⃣ Return response
     return {
       year: targetYear,
       data: chartData,
     };
+  }
+
+  async exportRevenueOverviewToCsv(year?: number) {
+    const data = await this.revenueOverviewChart(year);
+
+    const parser = new Parser({
+      fields: [
+        { label: 'Month', value: 'month' },
+        { label: 'Revenue', value: 'revenue' },
+      ],
+    });
+
+    const csv = parser.parse(data.data);
+
+    return '\uFEFFRevenue Overview\n\n' + csv;
+  }
+
+  private toNumber(value: number | Decimal | null | undefined): number {
+    if (!value) return 0;
+    return value instanceof Decimal ? value.toNumber() : value;
+  }
+
+  async getReportsAnalyticsData() {
+    const now = new Date();
+
+    // Date ranges
+    const currentMonthStart = startOfMonth(now);
+    const currentMonthEnd = endOfMonth(now);
+
+    const lastMonthStart = startOfMonth(subMonths(now, 1));
+    const lastMonthEnd = endOfMonth(subMonths(now, 1));
+
+    // 1️⃣ All-time revenue
+    const totalRevenueResult = await this.prisma.payment.aggregate({
+      _sum: { amount: true },
+      where: { status: 'COMPLETED' },
+    });
+
+    // 2️⃣ Revenue till last month (cumulative baseline)
+    const tillLastMonthResult = await this.prisma.payment.aggregate({
+      _sum: { amount: true },
+      where: {
+        status: 'COMPLETED',
+        createdAt: {
+          lte: lastMonthEnd,
+        },
+      },
+    });
+
+    // 3️⃣ Current month revenue
+    const currentMonthResult = await this.prisma.payment.aggregate({
+      _sum: { amount: true },
+      where: {
+        status: 'COMPLETED',
+        createdAt: {
+          gte: currentMonthStart,
+          lte: currentMonthEnd,
+        },
+      },
+    });
+
+    // 4️⃣ Last month revenue
+    const lastMonthResult = await this.prisma.payment.aggregate({
+      _sum: { amount: true },
+      where: {
+        status: 'COMPLETED',
+        createdAt: {
+          gte: lastMonthStart,
+          lte: lastMonthEnd,
+        },
+      },
+    });
+
+    // Normalize values
+    const totalRevenue = this.toNumber(totalRevenueResult._sum.amount);
+    const tillLastMonth = this.toNumber(tillLastMonthResult._sum.amount);
+    const currentMonth = this.toNumber(currentMonthResult._sum.amount);
+    const lastMonth = this.toNumber(lastMonthResult._sum.amount);
+
+    // 5️⃣ Total growth (vs all previous months)
+    let totalGrowthRate = 0;
+    if (tillLastMonth > 0) {
+      totalGrowthRate = ((totalRevenue - tillLastMonth) / tillLastMonth) * 100;
+    } else if (totalRevenue > 0) {
+      totalGrowthRate = 100;
+    }
+
+    // 6️⃣ Month-over-month growth
+    let monthlyGrowthRate = 0;
+    if (lastMonth > 0) {
+      monthlyGrowthRate = ((currentMonth - lastMonth) / lastMonth) * 100;
+    } else if (currentMonth > 0) {
+      monthlyGrowthRate = 100;
+    }
+
+    return {
+      totalRevenue,
+      currentMonthRevenue: currentMonth,
+      lastMonthRevenue: lastMonth,
+
+      totalGrowthRate,
+      monthlyGrowthRate,
+    };
+  }
+
+  async revenueBreakDownByMonth(year?: number) {
+    const targetYear = year ?? new Date().getFullYear();
+
+    const monthLabels = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    // 1️⃣ Year boundaries (date-fns)
+    const startDate = startOfYear(new Date(targetYear, 0, 1));
+    const endDate = endOfYear(new Date(targetYear, 0, 1));
+
+    // 2️⃣ Fetch payments
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        status: 'COMPLETED',
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        amount: true,
+        createdAt: true,
+      },
+    });
+
+    // 3️⃣ Initialize all months
+    const monthlyTotals = Array(12).fill(0);
+
+    // 4️⃣ Aggregate
+    for (const payment of payments) {
+      const date =
+        payment.createdAt instanceof Date
+          ? payment.createdAt
+          : parseISO(payment.createdAt as unknown as string);
+
+      const monthIndex = getMonth(date); // 0–11
+
+      monthlyTotals[monthIndex] += this.toNumber(payment.amount);
+    }
+
+    // 5️⃣ Format response
+    return monthlyTotals.map((amount, index) => ({
+      month: monthLabels[index],
+      amount,
+    }));
   }
 }

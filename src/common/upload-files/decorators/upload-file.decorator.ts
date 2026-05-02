@@ -32,17 +32,17 @@ export const UploadSingleImage = (fieldName = 'file') =>
 
     ApiConsumes('multipart/form-data'),
 
-    ApiBody({
-      schema: {
-        type: 'object',
-        properties: {
-          [fieldName]: {
-            type: 'string',
-            format: 'binary',
-          },
-        },
-      },
-    }),
+    // ApiBody({
+    //   schema: {
+    //     type: 'object',
+    //     properties: {
+    //       [fieldName]: {
+    //         type: 'string',
+    //         format: 'binary',
+    //       },
+    //     },
+    //   },
+    // }),
   );
 
 export const UploadImages = (fieldName = 'files', maxCount = 10) =>
