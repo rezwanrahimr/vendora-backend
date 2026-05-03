@@ -32,6 +32,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 
 import { UpdateVendorProfileDto } from './vendor.dto';
 import { UploadSingleImage } from 'src/common/upload-files/decorators/upload-file.decorator';
+import { User } from '@prisma/client';
 
 @Controller('vendors')
 @ApiSecurity('JWT') // Apply JWT security scheme to all endpoints in this controller
@@ -208,7 +209,8 @@ export class VendorsController {
   }
 
   @Get('statistics')
-  getOffersUsageHistory(@CurrentUser() user: any) {
+@ApiOperation({ summary: 'Get offers usage history for current vendor'  })
+  getOffersUsageHistory(@CurrentUser() user: User) {
     return this.vendorsService.getOffersUsageHistory(user.id);
   }
 

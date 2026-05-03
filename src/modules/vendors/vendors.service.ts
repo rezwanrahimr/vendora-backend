@@ -642,7 +642,7 @@ export class VendorsService {
   //   }
 
   async getOffersUsageHistory(userId: string) {
-    const vendor = await this.prisma.vendorProfile.findFirstOrThrow({
+    const vendor = await this.prisma.vendorProfile.findFirst({
       where: { userId },
     });
 
