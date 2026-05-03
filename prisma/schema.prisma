@@ -203,8 +203,7 @@ model QRCode {
 model AppHeroSlider {
   id       String  @id @default(uuid())
   imageUrl String
-  isActive Boolean @default(false)
-  order    Int     @default(1)
+  isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

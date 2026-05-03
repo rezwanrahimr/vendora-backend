@@ -2,7 +2,6 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import {
   ManageImageDto,
-  ReorderHeroSliderDto,
 } from './dto/app-hero-slider.dto';
 import { UploadFileService } from 'src/common/upload-files/upload-file.service';
 
@@ -16,6 +15,14 @@ export class AppHeroSliderService {
   async addImage(file?: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('Please upload an image file');
+    }
+
+    const existingImageCount = await this.prisma.appHeroSlider.count({
+      where: { isActive: true },
+    });
+
+    if (existingImageCount >= 5) {
+      throw new BadRequestException('Maximum 5 images allowed');
     }
 
     const uploadedImage = await this.uploadFileService.uploadSingle(
@@ -33,7 +40,6 @@ export class AppHeroSliderService {
       },
     });
   }
-
 
   removeImage(id: string) {
     return this.prisma.appHeroSlider.delete({ where: { id } });
@@ -78,47 +84,12 @@ export class AppHeroSliderService {
     return 'Hero images updated successfully';
   }
 
-  async reorderImages(payload: ReorderHeroSliderDto) {
-    if (!payload.items.length) {
-      throw new BadRequestException('Reorder payload is empty');
-    }
-
-    const ids = payload.items.map((i) => i.id);
-
-    // 1. Validate all images exist
-    const existingCount = await this.prisma.appHeroSlider.count({
-      where: { id: { in: ids } },
-    });
-
-    if (existingCount !== ids.length) {
-      throw new BadRequestException('One or more images not found');
-    }
-
-    // 2. Ensure no duplicate order values
-    const orders = payload.items.map((i) => i.order);
-    if (new Set(orders).size !== orders.length) {
-      throw new BadRequestException('Duplicate order values detected');
-    }
-
-    // 3. Atomic reorder
-    await this.prisma.$transaction(
-      payload.items.map((item) =>
-        this.prisma.appHeroSlider.update({
-          where: { id: item.id },
-          data: { order: item.order },
-        }),
-      ),
-    );
-
-    return 'Hero slider reordered successfully';
-  }
-
   async getAllImages() {
     return await this.prisma.appHeroSlider.findMany();
   }
 
   async getActiveImage() {
-    return await this.prisma.appHeroSlider.findFirst({
+    return await this.prisma.appHeroSlider.findMany({
       where: { isActive: true },
     });
   }
