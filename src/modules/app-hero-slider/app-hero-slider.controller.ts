@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -9,11 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AppHeroSliderService } from './app-hero-slider.service';
-import {
-  ApiBearerAuth,
-  ApiBody,
-  ApiOperation,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation } from '@nestjs/swagger';
 import { AddImageDto, ManageImageDto } from './dto/app-hero-slider.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
@@ -46,12 +43,16 @@ export class AppHeroSliderController {
   }
 
   @Patch('manage-image')
-  @ApiOperation({ summary: 'Manage images, only admin can use' })
+  @ApiOperation({
+    summary: 'Manage hero slider images (activate/deactivate)',
+    description:
+      'Bulk updates hero slider images. Ensures all image IDs exist and enforces a maximum of 5 active images globally.',
+  })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth('JWT')
   @ApiBody({ type: ManageImageDto })
-  async manageImage(payload: ManageImageDto) {
+  async manageImage(@Body() payload: ManageImageDto) {
     return await this.appHeroSliderService.manageImage(payload);
   }
 

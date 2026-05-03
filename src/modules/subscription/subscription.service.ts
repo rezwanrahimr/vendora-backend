@@ -952,7 +952,7 @@ export class SubscriptionService {
         userId,
         status: 'ACTIVE',
         endDate: { gt: now }, // 🔥 important
-        user: {
+        User: {
           status: 'ACTIVE',
           isDeleted: false,
         },

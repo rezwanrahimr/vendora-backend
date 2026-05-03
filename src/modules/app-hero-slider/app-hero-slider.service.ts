@@ -34,6 +34,7 @@ export class AppHeroSliderService {
     });
   }
 
+
   removeImage(id: string) {
     return this.prisma.appHeroSlider.delete({ where: { id } });
   }
