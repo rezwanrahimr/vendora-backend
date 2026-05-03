@@ -944,6 +944,31 @@ export class SubscriptionService {
     };
   }
 
+  async getMyCurrentSubscription(userId: string) {
+    const now = new Date();
+
+    const subscription = await this.prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: 'ACTIVE',
+        endDate: { gt: now }, // 🔥 important
+        user: {
+          status: 'ACTIVE',
+          isDeleted: false,
+        },
+      },
+      include: {
+        SubscriptionPlan: true,
+        payment: true,
+      },
+      orderBy: {
+        updatedAt: 'desc', // 🔥 deterministic
+      },
+    });
+
+    return subscription; // nullable (correct design)
+  }
+
   async getFreeSubscriptions(
     search?: string,
     page: number = 1,

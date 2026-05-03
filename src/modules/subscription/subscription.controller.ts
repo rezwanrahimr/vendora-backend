@@ -187,6 +187,15 @@ export class SubscriptionController {
     return this.subscriptionService.getFreeSubscriptions(search, page, limit);
   }
 
+  @Get('current')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Get current subscription (user only)',
+  })
+  async getCurrentSubscription(@CurrentUser() user: User) {
+    return this.subscriptionService.getMyCurrentSubscription(user.id);
+  }
+
   @Patch('free/:subscriptionId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
