@@ -17,6 +17,7 @@ import { User } from '@prisma/client';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import {
   ApiBearerAuth,
+  ApiExcludeEndpoint,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -93,12 +94,41 @@ export class SubscriptionController {
     res.send(html);
   }
 
+  // @Post('payment/callback')
+  // @ApiOperation({
+  //   summary: 'NestPay callback endpoint (public)',
+  // })
+  // async paymentCallback(@Body() payload: Record<string, string>) {
+  //   return this.subscriptionService.handlePaymentCallback(payload);
+  // }
+
   @Post('payment/callback')
-  @ApiOperation({
-    summary: 'NestPay callback endpoint (public)',
-  })
-  async paymentCallback(@Body() payload: Record<string, string>) {
-    return this.subscriptionService.handlePaymentCallback(payload);
+  @ApiExcludeEndpoint()
+  async paymentCallback(
+    @Body() payload: Record<string, string>,
+    @Res() res: Response,
+  ) {
+    try {
+      const result =
+        await this.subscriptionService.handlePaymentCallback(payload);
+
+      const frontendUrl = process.env.FRONTEND_URL;
+
+      if (result.status === 'COMPLETED') {
+        return res.redirect(
+          `${frontendUrl}/payment/result?paymentId=${result.paymentId}&status=success`,
+        );
+      } else {
+        return res.redirect(
+          `${frontendUrl}/payment/result?paymentId=${result.paymentId}&status=failed`,
+        );
+      }
+    } catch (error) {
+      const frontendUrl = process.env.FRONTEND_URL;
+      return res.redirect(
+        `${frontendUrl}/payment/result?status=error&message=${encodeURIComponent(error instanceof Error ? error.message : String(error))}`,
+      );
+    }
   }
 
   @Get('dashboard')
@@ -212,5 +242,16 @@ export class SubscriptionController {
     @Param('subscriptionId') subscriptionId: string,
   ) {
     return this.subscriptionService.removeFreeSubscription(subscriptionId);
+  }
+
+  @Get('payment/result/:paymentId')
+  @ApiOperation({
+    summary: 'Get payment result (public)',
+  })
+  async getPaymentResult(
+    @Param('paymentId') paymentId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.subscriptionService.getPaymentStatus(paymentId, user.id);
   }
 }

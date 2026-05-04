@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -764,7 +765,12 @@ export class SubscriptionService {
   }
 
   async handlePaymentCallback(payload: Record<string, string>) {
-    const oid = payload.oid || payload.Oid;
+    const oid =
+      payload.oid ||
+      payload.Oid ||
+      payload.ReturnOid || // ← THIS is what NestPay actually sends back
+      payload.returnOid;
+
     if (!oid) {
       throw new BadRequestException('Missing oid in callback payload');
     }
@@ -958,8 +964,27 @@ export class SubscriptionService {
         },
       },
       include: {
-        SubscriptionPlan: true,
-        payment: true,
+        SubscriptionPlan: {
+          select: {
+            price: true,
+            name: true,
+            currency: true,
+            durationInDays: true,
+            currentPriceDisplay: true,
+            description: true,
+          },
+        },
+        payment: {
+          select: {
+            providerTransactionId: true,
+            status: true,
+            metadata: true,
+            provider: true,
+            amount: true,
+            currency: true,
+            id: true,
+          },
+        },
       },
       orderBy: {
         updatedAt: 'desc', // 🔥 deterministic
@@ -1069,6 +1094,43 @@ export class SubscriptionService {
     return {
       message: 'Free subscription removed successfully',
       subscriptionId,
+    };
+  }
+
+  async getPaymentStatus(paymentId: string, userId: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+
+    if (!payment) throw new NotFoundException('Payment not found');
+
+    if (payment.userId !== userId) throw new ForbiddenException("Forbidden");
+
+    const meta = this.asObject(payment.metadata);
+
+    const nestpay = this.asObject(meta.nestpay);
+
+    const callbackPayload = this.asObject(nestpay.callbackPayload);
+
+    return {
+      id: payment.id,
+
+      status: payment.status,
+
+      subscriptionId: payment.subscriptionId,
+
+      nestpay: {
+        authCode: callbackPayload.AuthCode,
+        procReturnCode: callbackPayload.ProcReturnCode,
+
+        response: callbackPayload.Response,
+
+        errMsg: callbackPayload.ErrMsg,
+
+        mdStatus: callbackPayload.mdStatus,
+
+        transId: callbackPayload.TransId,
+      },
     };
   }
 }
