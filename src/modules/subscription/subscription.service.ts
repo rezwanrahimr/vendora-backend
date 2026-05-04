@@ -924,9 +924,36 @@ export class SubscriptionService {
     const [subscriptions, total] = await this.prisma.$transaction([
       this.prisma.subscription.findMany({
         where,
-        include: {
-          SubscriptionPlan: true,
-          payment: true,
+        select: {
+          id: true,
+          createdAt: true,
+          status: true,
+          startDate: true,
+          endDate: true,
+          price: true,
+          finalPrice: true,
+          discountAmount: true,
+          paymentStatus: true,
+          SubscriptionPlan: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              price: true,
+              durationInDays: true,
+              currency: true,
+              currentPriceDisplay: true,
+            },
+          },
+          payment: {
+            select: {
+              id: true,
+              amount: true,
+              status: true,
+              provider: true,
+              createdAt: true,
+            },
+          },
         },
         orderBy: {
           createdAt: 'desc',
@@ -963,26 +990,22 @@ export class SubscriptionService {
           isDeleted: false,
         },
       },
-      include: {
+      select: {
+        id: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        isFree: true,
+        price: true,
+        paymentStatus: true,
         SubscriptionPlan: {
           select: {
-            price: true,
-            name: true,
-            currency: true,
-            durationInDays: true,
-            currentPriceDisplay: true,
-            description: true,
-          },
-        },
-        payment: {
-          select: {
-            providerTransactionId: true,
-            status: true,
-            metadata: true,
-            provider: true,
-            amount: true,
-            currency: true,
             id: true,
+            name: true,
+            price: true,
+            currentPriceDisplay: true,
+            durationInDays: true,
+            currency: true,
           },
         },
       },
@@ -1104,7 +1127,7 @@ export class SubscriptionService {
 
     if (!payment) throw new NotFoundException('Payment not found');
 
-    if (payment.userId !== userId) throw new ForbiddenException("Forbidden");
+    if (payment.userId !== userId) throw new ForbiddenException('Forbidden');
 
     const meta = this.asObject(payment.metadata);
 
