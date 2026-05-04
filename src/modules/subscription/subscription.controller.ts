@@ -250,8 +250,8 @@ export class SubscriptionController {
   })
   async getPaymentResult(
     @Param('paymentId') paymentId: string,
-    @CurrentUser() user: User,
+
   ) {
-    return this.subscriptionService.getPaymentStatus(paymentId, user.id);
+    return this.subscriptionService.getPaymentStatus(paymentId);
   }
 }

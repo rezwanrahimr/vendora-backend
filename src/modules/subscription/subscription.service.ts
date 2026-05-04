@@ -1120,14 +1120,14 @@ export class SubscriptionService {
     };
   }
 
-  async getPaymentStatus(paymentId: string, userId: string) {
+  async getPaymentStatus(paymentId: string, ) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
     });
 
     if (!payment) throw new NotFoundException('Payment not found');
 
-    if (payment.userId !== userId) throw new ForbiddenException('Forbidden');
+    // if (payment.userId !== userId) throw new ForbiddenException('Forbidden');
 
     const meta = this.asObject(payment.metadata);
 
