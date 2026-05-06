@@ -333,6 +333,7 @@ enum SubscriptionPaymentStatus {
   PENDING
   COMPLETED
   NOT_REQUIRED // for free subscriptions
+  FAILED
 }
 
 enum SubscriptionStatus {

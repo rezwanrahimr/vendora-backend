@@ -11,7 +11,6 @@ export class SubscriptionCronJobService {
 
   private isRunning = false;
 
-  // 🔥 Run more frequently for correctness
   @Cron(CronExpression.EVERY_10_MINUTES)
   async syncSubscriptions() {
     if (this.isRunning) return;
@@ -30,7 +29,8 @@ export class SubscriptionCronJobService {
   private async expireSubscriptions() {
     const now = new Date();
 
-    const result = await this.prisma.subscription.updateMany({
+    // 1. Expire subscriptions
+    const expired = await this.prisma.subscription.updateMany({
       where: {
         status: SubscriptionStatus.ACTIVE,
         endDate: { lt: now },
@@ -40,13 +40,14 @@ export class SubscriptionCronJobService {
       },
     });
 
-    // ⚠️ Keep user sync efficient (single query, no loops)
-    const userUpdateResult = await this.prisma.user.updateMany({
+    // 2. Sync users (only those who truly have no active subscription)
+    const usersUpdated = await this.prisma.user.updateMany({
       where: {
         isSubscribed: true,
         subscriptions: {
           none: {
             status: SubscriptionStatus.ACTIVE,
+            endDate: { gt: now }, // ✅ important fix
           },
         },
       },
@@ -55,11 +56,11 @@ export class SubscriptionCronJobService {
       },
     });
 
-    this.logger.log(`Expired subscriptions: ${result.count}`);
-    this.logger.log(`Users updated: ${userUpdateResult.count}`);
+    this.logger.log(`Expired subscriptions: ${expired.count}`);
+    this.logger.log(`Users updated: ${usersUpdated.count}`);
   }
 
-  // 🟢 Activate PENDING subscriptions (batch safe)
+  // 🟢 Activate PENDING subscriptions (FREE only)
   private async activatePendingSubscriptions() {
     const now = new Date();
     const BATCH_SIZE = 200;
@@ -71,22 +72,34 @@ export class SubscriptionCronJobService {
         where: {
           status: SubscriptionStatus.PENDING,
           startDate: { lte: now },
+          isFree: true, // ✅ explicit: only free subscriptions
         },
-        select: { id: true },
+        select: {
+          id: true,
+          userId: true,
+        },
         take: BATCH_SIZE,
         orderBy: { startDate: 'asc' },
       });
 
       if (pending.length === 0) break;
 
-      await this.prisma.subscription.updateMany({
-        where: {
-          id: { in: pending.map((s) => s.id) },
-        },
-        data: {
-          status: SubscriptionStatus.ACTIVE,
-        },
-      });
+      const subscriptionIds = pending.map((s) => s.id);
+      const userIds = [...new Set(pending.map((s) => s.userId))];
+
+      await this.prisma.$transaction([
+        // 1. Activate subscriptions
+        this.prisma.subscription.updateMany({
+          where: { id: { in: subscriptionIds } },
+          data: { status: SubscriptionStatus.ACTIVE },
+        }),
+
+        // 2. Mark users as subscribed
+        this.prisma.user.updateMany({
+          where: { id: { in: userIds } },
+          data: { isSubscribed: true },
+        }),
+      ]);
 
       processed += pending.length;
     }

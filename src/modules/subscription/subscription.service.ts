@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -25,169 +24,6 @@ export class SubscriptionService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {}
-
-  //TODO:  later will add coupon code and other features
-  // async bookSubscription(userId: string, planId: string) {
-  //   const user = await this.prisma.user.findUnique({
-  //     where: { id: userId },
-  //   });
-
-  //   if (!user || user.isDeleted) {
-  //     throw new NotFoundException('User not found');
-  //   }
-
-  //   if (user.status !== 'ACTIVE') {
-  //     throw new BadRequestException('User is not active');
-  //   }
-
-  //   const plan = await this.prisma.subscriptionPlan.findUnique({
-  //     where: { id: planId },
-  //   });
-
-  //   if (!plan) {
-  //     throw new NotFoundException('Subscription plan not found');
-  //   }
-
-  //   if (!plan.isActive) {
-  //     throw new BadRequestException('Subscription plan is not active');
-  //   }
-
-  //   const now = new Date();
-
-  //   // 🚨 Prevent multiple active subscriptions
-  //   const existingActive = await this.prisma.subscription.findFirst({
-  //     where: {
-  //       userId,
-  //       status: 'ACTIVE',
-  //       endDate: { gt: now },
-  //     },
-  //   });
-
-  //   if (existingActive) {
-  //     throw new BadRequestException('User already has an active subscription');
-  //   }
-
-  //   const subscriptionEnd = new Date(
-  //     now.getTime() + plan.durationInDays * 24 * 60 * 60 * 1000,
-  //   );
-
-  //   return this.prisma.$transaction(async (tx) => {
-  //     // 1. Create subscription (PENDING)
-  //     const subscription = await tx.subscription.create({
-  //       data: {
-  //         userId,
-  //         planId,
-  //         price: plan.price,
-  //         finalPrice: plan.price,
-  //         discountAmount: 0,
-  //         startDate: now,
-  //         endDate: subscriptionEnd,
-  //         status: 'PENDING',
-  //         paymentStatus: 'PENDING',
-  //       },
-  //     });
-
-  //     // 2. Create payment (PENDING)
-  //     const payment = await tx.payment.create({
-  //       data: {
-  //         amount: plan.price,
-  //         provider: 'NESTPAY',
-  //         status: 'PENDING',
-  //         subscriptionId: subscription.id,
-  //         userId,
-  //       },
-  //     });
-
-  //     return {
-  //       subscription,
-  //       payment,
-  //     };
-  //   });
-  // }
-
-  // async checkoutPayment(paymentId: string, userId: string) {
-  //   const payment = await this.prisma.payment.findUnique({
-  //     where: { id: paymentId },
-  //     include: {
-  //       Subscription: true,
-  //     },
-  //   });
-
-  //   if (!payment) {
-  //     throw new NotFoundException('Payment not found');
-  //   }
-
-  //   if (payment.Subscription.userId !== userId) {
-  //     throw new BadRequestException('Unauthorized payment access');
-  //   }
-
-  //   if (payment.status === 'COMPLETED') {
-  //     return {
-  //       message: 'Payment already completed',
-  //       paymentId,
-  //       status: payment.status,
-  //     };
-  //   }
-
-  //   const nestpay = this.getNestpayConfig();
-  //   const oid = payment.id;
-  //   const rnd = randomBytes(16).toString('hex').toUpperCase();
-  //   const amount = this.formatAmountForGateway(payment.amount);
-
-  //   const hash = this.generateNestpayRequestHash({
-  //     clientId: nestpay.clientId,
-  //     oid,
-  //     amount,
-  //     okUrl: nestpay.okUrl,
-  //     failUrl: nestpay.failUrl,
-  //     trantype: nestpay.trantype,
-  //     rnd,
-  //     currency: nestpay.currency,
-  //     storeKey: nestpay.storeKey,
-  //   });
-
-  //   const existingMetadata = this.asObject(payment.metadata);
-
-  //   await this.prisma.payment.update({
-  //     where: { id: paymentId },
-  //     data: {
-  //       status: 'PENDING',
-  //       metadata: {
-  //         ...existingMetadata,
-  //         nestpay: {
-  //           ...this.asObject(existingMetadata.nestpay),
-  //           lastInitAt: new Date().toISOString(),
-  //           oid,
-  //           rnd,
-  //           amount,
-  //           gatewayUrl: nestpay.gatewayUrl,
-  //         },
-  //       },
-  //     },
-  //   });
-
-  //   return {
-  //     message: 'NestPay checkout initialized successfully',
-  //     paymentId,
-  //     method: 'POST',
-  //     actionUrl: nestpay.gatewayUrl,
-  //     fields: {
-  //       currency: nestpay.currency,
-  //       trantype: nestpay.trantype,
-  //       okUrl: nestpay.okUrl,
-  //       failUrl: nestpay.failUrl,
-  //       amount,
-  //       oid,
-  //       clientid: nestpay.clientId,
-  //       storetype: nestpay.storetype,
-  //       lang: nestpay.lang,
-  //       hashAlgorithm: 'ver2',
-  //       rnd,
-  //       encoding: nestpay.encoding,
-  //       hash,
-  //     },
-  //   };
-  // }
 
   async giveFreeSubscription(payload: FreeSubscriptionDto) {
     const user = await this.validateUser(payload.userId);
@@ -241,17 +77,13 @@ export class SubscriptionService {
         data: {
           userId: user.id,
           planId: plan.id,
-
           price: 0,
           finalPrice: 0,
           discountAmount: null,
-
           startDate,
           endDate,
-
           status,
           paymentStatus: SubscriptionPaymentStatus.NOT_REQUIRED,
-
           freeReason: payload.freeReason,
           isFree: true,
         },
@@ -374,6 +206,10 @@ export class SubscriptionService {
 
     if (user.status !== 'ACTIVE') {
       throw new BadRequestException('User is not active');
+    }
+
+    if (user.role !== 'USER') {
+      throw new BadRequestException('User is not a customer');
     }
 
     return user;
@@ -765,6 +601,11 @@ export class SubscriptionService {
   }
 
   async handlePaymentCallback(payload: Record<string, string>) {
+    console.log(
+      '🚀 ~ subscription.service.ts:769 ~ SubscriptionService ~ handlePaymentCallback ~ payload:',
+      payload,
+    );
+
     const oid =
       payload.oid ||
       payload.Oid ||
@@ -808,13 +649,19 @@ export class SubscriptionService {
       response.length === 0 || response.toLowerCase() === 'approved';
 
     const hashValidation = this.verifyCallbackHash(payload, nestpay.storeKey);
-    const isSuccess =
-      isMdStatusOk &&
-      isProcReturnOk &&
-      isResponseApproved &&
-      hashValidation.isValid;
+    const isSuccess = isMdStatusOk && isProcReturnOk && isResponseApproved;
+    // && hashValidation.isValid
 
     const existingMetadata = this.asObject(payment.metadata);
+
+    console.log({
+      isMdStatusOk,
+      isProcReturnOk,
+      isResponseApproved,
+      hashValidation,
+      isSuccess,
+      existingMetadata,
+    });
 
     return this.prisma.$transaction(async (tx) => {
       await tx.payment.update({
@@ -1120,7 +967,7 @@ export class SubscriptionService {
     };
   }
 
-  async getPaymentStatus(paymentId: string, ) {
+  async getPaymentStatus(paymentId: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
     });

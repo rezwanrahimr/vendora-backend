@@ -18,8 +18,8 @@ export class PaymentCronJobService {
     const expiryMinutes = 30;
     const cutoff = new Date(Date.now() - expiryMinutes * 60 * 1000);
 
-    // 1. Find affected payment + subscription IDs first
-    const pendingPayments = await this.prisma.payment.findMany({
+    // 1. Fetch expired pending payments
+    const expired = await this.prisma.payment.findMany({
       where: {
         status: PaymentStatus.PENDING,
         createdAt: { lt: cutoff },
@@ -27,35 +27,44 @@ export class PaymentCronJobService {
       select: {
         id: true,
         subscriptionId: true,
+        userId: true,
       },
     });
 
-    if (!pendingPayments.length) return;
+    if (expired.length === 0) {
+      return;
+    }
 
-    const paymentIds = pendingPayments.map((p) => p.id);
-    const subscriptionIds = pendingPayments.map((p) => p.subscriptionId);
+    const paymentIds = expired.map((p) => p.id);
+    const subscriptionIds = expired.map((p) => p.subscriptionId);
+    const userIds = [...new Set(expired.map((p) => p.userId))];
 
-    // 2. Batch update payments
-    await this.prisma.payment.updateMany({
-      where: {
-        id: { in: paymentIds },
-      },
-      data: {
-        status: PaymentStatus.FAILED,
-      },
-    });
+    // 2. Run batch updates in transaction
+    await this.prisma.$transaction([
+      // ❌ Mark payments as failed
+      this.prisma.payment.updateMany({
+        where: { id: { in: paymentIds } },
+        data: { status: PaymentStatus.FAILED },
+      }),
 
-    // 3. Batch update subscriptions
-    await this.prisma.subscription.updateMany({
-      where: {
-        id: { in: subscriptionIds },
-      },
-      data: {
-        status: SubscriptionStatus.CANCELLED,
-        paymentStatus: SubscriptionPaymentStatus.PENDING,
-      },
-    });
+      // ❌ Cancel subscriptions
+      this.prisma.subscription.updateMany({
+        where: { id: { in: subscriptionIds } },
+        data: {
+          status: SubscriptionStatus.CANCELLED,
+          paymentStatus: SubscriptionPaymentStatus.FAILED, // ✅ fixed
+        },
+      }),
 
-    this.logger.log(`Expired ${paymentIds.length} pending payments in batch`);
+      // ❌ Reset user subscription flag
+      this.prisma.user.updateMany({
+        where: { id: { in: userIds } },
+        data: { isSubscribed: false },
+      }),
+    ]);
+
+    this.logger.log(
+      `Expired ${paymentIds.length} payments and cancelled subscriptions`,
+    );
   }
 }
