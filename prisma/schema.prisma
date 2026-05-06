@@ -322,6 +322,15 @@ model Payment {
   Subscription Subscription @relation(fields: [subscriptionId], references: [id])
 }
 
+model TermsAndCondition {
+  id        String   @id @default(uuid())
+  version   String   @unique
+  content   String
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum PaymentStatus {
   PENDING
   COMPLETED

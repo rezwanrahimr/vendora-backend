@@ -22,6 +22,7 @@ import { PromoCodeModule } from './modules/promo-code/promo-code.module';
 import { CronJobModule } from './jobs/cron-job.module';
 import configuration from './config/configuration';
 import { ScheduleModule } from '@nestjs/schedule';
+import { TermsAndConditionModule } from './modules/terms-and-condition/terms-and-condition.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     SubscriptionModule,
     PromoCodeModule,
     CronJobModule,
+    TermsAndConditionModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
