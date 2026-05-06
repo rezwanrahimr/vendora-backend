@@ -1,6 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
-import { AddTermsAndConditionDto } from './dto/terms-condition.dto';
+import {
+  AddTermsAndConditionDto,
+  UpdateTermsAndConditionDto,
+} from './dto/terms-condition.dto';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -60,6 +63,98 @@ export class TermsAndConditionService {
     throw new BadRequestException('Failed to generate unique version');
   }
 
+  async getAllTermsAndConditionForAll(page = 1, limit = 10, search?: string) {
+    const where: Prisma.TermsAndConditionWhereInput = {};
 
-  
+    if (search) {
+      where.OR = [
+        {
+          content: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          version: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.termsAndCondition.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      this.prisma.termsAndCondition.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getActiveTermsAndCondition() {
+    return await this.prisma.termsAndCondition.findFirst({
+      where: { isActive: true },
+    });
+  }
+
+  async getTermsAndConditionByVersion(id: string) {
+    return await this.prisma.termsAndCondition.findUnique({
+      where: { id },
+    });
+  }
+
+  async updateTermsAndCondition(
+    id: string,
+    payload: UpdateTermsAndConditionDto,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. ensure record exists
+      const existing = await tx.termsAndCondition.findUnique({
+        where: { id },
+      });
+
+      if (!existing) {
+        throw new BadRequestException('Terms and Condition not found');
+      }
+
+      // 2. if activating this record → deactivate others
+      if (payload.isActive) {
+        await tx.termsAndCondition.updateMany({
+          where: {
+            isActive: true,
+            NOT: { id },
+          },
+          data: {
+            isActive: false,
+          },
+        });
+      }
+
+      // 3. update only provided fields
+      return tx.termsAndCondition.update({
+        where: { id },
+        data: {
+          ...(payload.content !== undefined && {
+            content: payload.content,
+          }),
+          ...(payload.isActive !== undefined && {
+            isActive: payload.isActive,
+          }),
+        },
+      });
+    });
+  }
 }
