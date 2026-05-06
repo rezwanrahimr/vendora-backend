@@ -20,6 +20,7 @@ type SeedUser = {
   email: string;
   password: string;
   role: 'ADMIN' | 'VENDOR' | 'USER';
+  phone: string;
 };
 
 const seedUsers = async (prisma: PrismaClient) => {
@@ -29,18 +30,21 @@ const seedUsers = async (prisma: PrismaClient) => {
       email: 'admin@e.com',
       password: 'strongPassword123',
       role: 'ADMIN',
+      phone: '+15550000001',
     },
     {
       name: 'Vendor User',
       email: 'vendor@e.com',
       password: 'strongPassword123',
       role: 'VENDOR',
+      phone: '+15550000002',
     },
     {
       name: 'Regular User',
       email: 'user@e.com',
       password: 'strongPassword123',
       role: 'USER',
+      phone: '+15550000003',
     },
   ];
 
@@ -60,6 +64,7 @@ const seedUsers = async (prisma: PrismaClient) => {
       data: {
         name: user.name,
         email: user.email,
+        phone: user.phone,
         password: hashedPassword,
         role: user.role,
         status: 'ACTIVE',
@@ -137,6 +142,7 @@ const seedAdminUser = async (prisma: PrismaClient) => {
     data: {
       name: 'Admin User',
       email: config.adminEmail,
+      phone: '+15550000000',
       password: hashedPassword,
       role: 'ADMIN',
       status: 'ACTIVE',

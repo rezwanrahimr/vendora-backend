@@ -33,7 +33,7 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const { email, password, role, name } = registerDto;
+    const { email, password, role, name, mobileNumber } = registerDto;
 
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
@@ -42,6 +42,14 @@ export class AuthService {
 
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
+    }
+
+    const existingPhone = await this.prisma.user.findUnique({
+      where: { phone: mobileNumber },
+    });
+
+    if (existingPhone) {
+      throw new ConflictException('User with this mobile number already exists');
     }
 
     // Hash password
@@ -56,6 +64,7 @@ export class AuthService {
         data: {
           name,
           email,
+          phone: mobileNumber,
           password: hashedPassword,
           role: role || 'USER',
           status: 'ACTIVE', // Regular users are active by default
@@ -96,8 +105,16 @@ export class AuthService {
   }
 
   async registerVendor(registerVendorDto: RegisterVendorDto) {
-    const { email, password, name, streetAddress, city, zipCode, categoryId } =
-      registerVendorDto;
+    const {
+      email,
+      password,
+      name,
+      streetAddress,
+      city,
+      zipCode,
+      categoryId,
+      mobileNumber,
+    } = registerVendorDto;
 
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
@@ -106,6 +123,14 @@ export class AuthService {
 
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
+    }
+
+    const existingPhone = await this.prisma.user.findUnique({
+      where: { phone: mobileNumber },
+    });
+
+    if (existingPhone) {
+      throw new ConflictException('User with this mobile number already exists');
     }
 
     const category = await this.prisma.category.findUnique({
@@ -145,6 +170,7 @@ export class AuthService {
       const newUser = await tx.user.create({
         data: {
           email,
+          phone: mobileNumber,
           password: hashedPassword,
           name,
           role: 'VENDOR',
@@ -263,6 +289,7 @@ export class AuthService {
       user = await this.prisma.user.create({
         data: {
           email: loginWithGoogleDto.email,
+          phone: `google-${crypto.randomUUID()}`,
           name: loginWithGoogleDto.name,
           role: 'USER',
           status: 'ACTIVE',

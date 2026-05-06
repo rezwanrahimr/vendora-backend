@@ -17,7 +17,7 @@ model User {
   dateOfBirth            DateTime?
   location               String?
   imageUrl               String?
-  phone                  String?                @unique
+  phone                  String                 @unique
   status                 UserStatus             @default(PENDING)
   isEmailVerified        Boolean                @default(false)
   isSubscribed           Boolean                @default(false) // for subscription check
