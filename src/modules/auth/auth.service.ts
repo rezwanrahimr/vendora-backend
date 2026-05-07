@@ -413,7 +413,6 @@ export class AuthService {
       user.name || '',
     );
 
-    return new ResponseDto(false, 'User with that email does not exist', null);
   }
 
   // Step 2: Verify code and return short-lived token
