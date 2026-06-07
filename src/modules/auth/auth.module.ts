@@ -8,9 +8,11 @@ import { EmailService } from './email.service';
 import { CacheService } from './cache.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaService } from '../../prisma.service';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
+    NotificationModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       secret:

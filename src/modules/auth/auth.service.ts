@@ -22,6 +22,14 @@ import { CacheService } from './cache.service';
 import { ResponseDto } from '../../common/dto/response.dto';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { FirebaseService } from '../notification/firebase.service';
+
+interface FcmTokenPayload {
+  token: string;
+  platform: string;
+  deviceId?: string;
+  createdAt: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -30,7 +38,47 @@ export class AuthService {
     private jwtService: JwtService,
     private emailService: EmailService,
     private cacheService: CacheService,
+    private firebaseService: FirebaseService,
   ) {}
+
+  private parseFcmTokens(fcmTokensData: any): FcmTokenPayload[] {
+    if (!fcmTokensData) return [];
+
+    if (Array.isArray(fcmTokensData)) {
+      return fcmTokensData as FcmTokenPayload[];
+    }
+
+    if (typeof fcmTokensData === 'object' && fcmTokensData.token) {
+      return [fcmTokensData] as FcmTokenPayload[];
+    }
+
+    return [];
+  }
+
+  private mergeFcmTokens(
+    existingTokensData: any,
+    token?: string,
+  ): FcmTokenPayload[] | undefined {
+    if (!token) {
+      return undefined;
+    }
+
+    const existingTokens = this.parseFcmTokens(existingTokensData);
+    const tokenExists = existingTokens.some((item) => item.token === token);
+
+    if (tokenExists) {
+      return existingTokens;
+    }
+
+    return [
+      ...existingTokens,
+      {
+        token,
+        platform: 'mobile',
+        createdAt: new Date().toISOString(),
+      },
+    ];
+  }
 
   async register(registerDto: RegisterDto) {
     const { email, password, role, name, mobileNumber } = registerDto;
@@ -276,29 +324,99 @@ export class AuthService {
   }
 
   async loginWithGoogle(loginWithGoogleDto: LoginWithGoogleDto) {
+    let decodedToken: Awaited<
+      ReturnType<FirebaseService['verifyIdToken']>
+    >;
+
+    try {
+      decodedToken = await this.firebaseService.verifyIdToken(
+        loginWithGoogleDto.idToken,
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Firebase not configured') {
+        throw new BadRequestException(
+          'Firebase authentication is not configured on the server',
+        );
+      }
+
+      throw new UnauthorizedException('Invalid or expired Firebase ID token');
+    }
+
+    const provider = decodedToken.firebase?.sign_in_provider;
+
+    if (provider !== 'google.com') {
+      throw new UnauthorizedException('Invalid Google sign-in token');
+    }
+
+    if (!decodedToken.email || !decodedToken.email_verified) {
+      throw new UnauthorizedException(
+        'Google account email is not available or not verified',
+      );
+    }
+
     let user = await this.prisma.user.findUnique({
-      where: {
-        email: loginWithGoogleDto.email,
-      },
-      omit: {
-        password: true,
+      where: { email: decodedToken.email },
+      include: {
+        vendorProfile: true,
       },
     });
-    // TODO add isGoogleLogin flag
+
+    if (user && user.role !== 'USER') {
+      throw new UnauthorizedException(
+        'Google login is only available for user accounts',
+      );
+    }
+
     if (!user) {
-      user = await this.prisma.user.create({
+      const newFcmTokens = this.mergeFcmTokens(null, loginWithGoogleDto.fcmToken);
+
+      user = await this.prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            email: decodedToken.email!,
+            phone: `google-${decodedToken.uid}`,
+            name: decodedToken.name || decodedToken.email?.split('@')[0],
+            role: 'USER',
+            status: 'ACTIVE',
+            isEmailVerified: true,
+            password: '',
+            imageUrl: decodedToken.picture,
+            ...(newFcmTokens ? { fcmTokens: newFcmTokens as any } : {}),
+            lastActiveAt: new Date(),
+          },
+          include: {
+            vendorProfile: true,
+          },
+        });
+
+        await tx.userNotification.create({
+          data: {
+            userId: newUser.id,
+            newOffer: true,
+            renewalReminder: true,
+            promotional: true,
+          },
+        });
+
+        return newUser;
+      });
+    } else {
+      const updatedFcmTokens = this.mergeFcmTokens(
+        user.fcmTokens,
+        loginWithGoogleDto.fcmToken,
+      );
+
+      user = await this.prisma.user.update({
+        where: { id: user.id },
         data: {
-          email: loginWithGoogleDto.email,
-          phone: `google-${crypto.randomUUID()}`,
-          name: loginWithGoogleDto.name,
-          role: 'USER',
-          status: 'ACTIVE',
+          name: user.name || decodedToken.name,
+          imageUrl: user.imageUrl || decodedToken.picture,
           isEmailVerified: true,
-          password: '',
-          imageUrl: loginWithGoogleDto.imageUrl,
+          lastActiveAt: new Date(),
+          ...(updatedFcmTokens ? { fcmTokens: updatedFcmTokens as any } : {}),
         },
-        omit: {
-          password: true,
+        include: {
+          vendorProfile: true,
         },
       });
     }
@@ -311,9 +429,10 @@ export class AuthService {
 
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload);
+    const { password: _password, ...userWithoutPassword } = user;
 
     return new ResponseDto(true, 'Login successful', {
-      user,
+      user: userWithoutPassword,
       accessToken,
     });
   }

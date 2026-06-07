@@ -12,19 +12,18 @@ export * from './change-password.dto';
 export class LoginWithGoogleDto {
   @IsString()
   @IsNotEmpty()
-  @ApiProperty({ description: 'Email address', example: 'user@example.com' })
-  email: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty({ description: 'Full name of the user', example: 'John Doe' })
-  name: string;
+  @ApiProperty({
+    description:
+      'Firebase ID token generated after Google sign-in in the mobile app',
+    example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ik...',
+  })
+  idToken: string;
 
   @IsString()
   @IsOptional()
   @ApiPropertyOptional({
-    description: 'Image URL of the user',
-    example: 'https://example.com/avatar.jpg',
+    description: 'Optional FCM token for the device',
+    example: 'fcm-device-token',
   })
-  imageUrl?: string;
+  fcmToken?: string;
 }

@@ -14,19 +14,10 @@ export class FirebaseService implements OnModuleInit {
       const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
       const privateKey = this.configService
         .get<string>('FIREBASE_PRIVATE_KEY')
-        ?.replace(/\\n/g, '\n'); // Handle escaped newlines
+        ?.replace(/\\n/g, '\n');
       const clientEmail = this.configService.get<string>(
         'FIREBASE_CLIENT_EMAIL',
       );
-
-      // Debug: Log loaded credentials (remove in production)
-      console.log('=== Firebase Configuration Debug ===');
-      console.log('Project ID:', projectId);
-      console.log('Client Email:', clientEmail);
-      console.log('Private Key exists:', !!privateKey);
-      console.log('Private Key length:', privateKey?.length);
-      console.log('Private Key starts with:', privateKey?.substring(0, 50));
-      console.log('====================================');
 
       if (!projectId || !privateKey || !clientEmail) {
         this.logger.warn(
@@ -49,6 +40,25 @@ export class FirebaseService implements OnModuleInit {
     } catch (error) {
       this.logger.error('Failed to initialize Firebase Admin SDK', error);
     }
+  }
+
+  getAuth(): admin.auth.Auth | null {
+    if (!this.firebaseApp) {
+      this.logger.warn('Firebase app not initialized');
+      return null;
+    }
+
+    return admin.auth(this.firebaseApp);
+  }
+
+  async verifyIdToken(token: string): Promise<admin.auth.DecodedIdToken> {
+    const auth = this.getAuth();
+
+    if (!auth) {
+      throw new Error('Firebase not configured');
+    }
+
+    return auth.verifyIdToken(token);
   }
 
   getMessaging(): admin.messaging.Messaging | null {

@@ -9,6 +9,6 @@ import { NotificationController } from './notification.controller';
   imports: [ConfigModule, PrismaModule],
   providers: [FirebaseService, PushNotificationService],
   controllers: [NotificationController],
-  exports: [PushNotificationService],
+  exports: [FirebaseService, PushNotificationService],
 })
 export class NotificationModule {}
