@@ -63,3 +63,7 @@ pnpm-lock.yaml
 
 
 .env.production
+docker-desktop-amd64.deb
+*.deb
+node_modules/
+dist/
