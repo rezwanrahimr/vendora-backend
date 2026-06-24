@@ -31,6 +31,9 @@ interface FcmTokenPayload {
   createdAt: string;
 }
 
+const FREE_TRIAL_DURATION_DAYS = 7;
+const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -78,6 +81,71 @@ export class AuthService {
         createdAt: new Date().toISOString(),
       },
     ];
+  }
+
+  private async getSubscriptionStatus(
+    userId: string,
+    createdAt: Date,
+    role: string,
+  ): Promise<{
+    trialDaysRemaining: number;
+    hasActiveSubscription: boolean;
+  }> {
+    if (role !== 'USER') {
+      return {
+        trialDaysRemaining: 0,
+        hasActiveSubscription: false,
+      };
+    }
+
+    const now = new Date();
+
+    const activeSubscription = await this.prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: 'ACTIVE',
+        endDate: { gt: now },
+      },
+      select: {
+        isFree: true,
+        endDate: true,
+      },
+      orderBy: {
+        endDate: 'desc',
+      },
+    });
+
+    if (activeSubscription) {
+      if (!activeSubscription.isFree) {
+        return {
+          trialDaysRemaining: 0,
+          hasActiveSubscription: true,
+        };
+      }
+
+      return {
+        trialDaysRemaining: Math.max(
+          0,
+          Math.ceil(
+            (activeSubscription.endDate.getTime() - now.getTime()) /
+              ONE_DAY_IN_MS,
+          ),
+        ),
+        hasActiveSubscription: false,
+      };
+    }
+
+    const trialEndDate = new Date(
+      createdAt.getTime() + FREE_TRIAL_DURATION_DAYS * ONE_DAY_IN_MS,
+    );
+
+    return {
+      trialDaysRemaining: Math.max(
+        0,
+        Math.ceil((trialEndDate.getTime() - now.getTime()) / ONE_DAY_IN_MS),
+      ),
+      hasActiveSubscription: false,
+    };
   }
 
   async register(registerDto: RegisterDto) {
@@ -145,10 +213,20 @@ export class AuthService {
     // Send verification email
     await this.emailService.sendVerificationEmail(email, verificationCode, '');
 
+    const subscriptionStatus = await this.getSubscriptionStatus(
+      user.id,
+      user.createdAt,
+      user.role,
+    );
+
     return new ResponseDto(
       true,
       'User registered successfully. Please check your email for verification code.',
-      { user },
+      {
+        user,
+        trialDaysRemaining: subscriptionStatus.trialDaysRemaining,
+        hasActiveSubscription: subscriptionStatus.hasActiveSubscription,
+      },
     );
   }
 
@@ -267,10 +345,20 @@ export class AuthService {
       name || '',
     );
 
+    const subscriptionStatus = await this.getSubscriptionStatus(
+      user.id,
+      user.createdAt,
+      user.role,
+    );
+
     return new ResponseDto(
       true,
       'Vendor registered successfully. Please check your email for verification code. Your account will be reviewed by admin.',
-      { user },
+      {
+        user,
+        trialDaysRemaining: subscriptionStatus.trialDaysRemaining,
+        hasActiveSubscription: subscriptionStatus.hasActiveSubscription,
+      },
     );
   }
 
@@ -316,10 +404,17 @@ export class AuthService {
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
+    const subscriptionStatus = await this.getSubscriptionStatus(
+      user.id,
+      user.createdAt,
+      user.role,
+    );
 
     return new ResponseDto(true, 'Login successful', {
       user: userWithoutPassword,
       accessToken,
+      trialDaysRemaining: subscriptionStatus.trialDaysRemaining,
+      hasActiveSubscription: subscriptionStatus.hasActiveSubscription,
     });
   }
 
@@ -430,10 +525,17 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload);
     const { password: _password, ...userWithoutPassword } = user;
+    const subscriptionStatus = await this.getSubscriptionStatus(
+      user.id,
+      user.createdAt,
+      user.role,
+    );
 
     return new ResponseDto(true, 'Login successful', {
       user: userWithoutPassword,
       accessToken,
+      trialDaysRemaining: subscriptionStatus.trialDaysRemaining,
+      hasActiveSubscription: subscriptionStatus.hasActiveSubscription,
     });
   }
 

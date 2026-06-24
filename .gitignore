@@ -67,3 +67,4 @@ docker-desktop-amd64.deb
 *.deb
 node_modules/
 dist/
+build/
