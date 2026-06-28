@@ -17,10 +17,11 @@ import { User } from '@prisma/client';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import {
   ApiBearerAuth,
-  ApiExcludeEndpoint,
+  ApiBody,
   ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { Response } from 'express';
 import {
@@ -31,7 +32,6 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
 
-@ApiBearerAuth('JWT')
 @Controller('subscription')
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
@@ -61,6 +61,7 @@ export class SubscriptionController {
   // }
 
   @Post('free')
+  @ApiBearerAuth('JWT')
   @ApiOperation({
     summary: 'Grant a free subscription to a user (admin only)',
   })
@@ -70,6 +71,7 @@ export class SubscriptionController {
 
   @Post('subscribe/checkout')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
   @ApiOperation({
     summary: 'Subscribe to a plan',
   })
@@ -82,6 +84,7 @@ export class SubscriptionController {
 
   @UseGuards(JwtAuthGuard)
   @Get('checkout/:paymentId/form')
+  @ApiBearerAuth('JWT')
   @ApiOperation({
     summary: 'Get auto-submit HTML form for NestPay checkout',
   })
@@ -103,7 +106,77 @@ export class SubscriptionController {
   // }
 
   @Post('payment/callback')
-  @ApiExcludeEndpoint()
+  @ApiOperation({
+    summary: 'NestPay callback endpoint (public)',
+    description:
+      'Receives the POST callback from NestPay after checkout, updates payment/subscription status, and redirects the client to the configured frontend payment result page.',
+  })
+  @ApiBody({
+    description:
+      'NestPay callback form payload. The gateway may send additional string fields depending on configuration.',
+    schema: {
+      type: 'object',
+      additionalProperties: {
+        type: 'string',
+      },
+      properties: {
+        ReturnOid: {
+          type: 'string',
+          example: '550e8400-e29b-41d4-a716-446655440000',
+          description: 'Payment identifier returned by NestPay.',
+        },
+        oid: {
+          type: 'string',
+          example: '550e8400-e29b-41d4-a716-446655440000',
+          description: 'Original payment identifier if sent by the gateway.',
+        },
+        mdStatus: {
+          type: 'string',
+          example: '1',
+          description: '3D Secure status. Success is usually one of 1, 2, 3, 4.',
+        },
+        ProcReturnCode: {
+          type: 'string',
+          example: '00',
+          description: 'Gateway processor return code. 00 indicates success.',
+        },
+        Response: {
+          type: 'string',
+          example: 'Approved',
+          description: 'Gateway approval response.',
+        },
+        HASH: {
+          type: 'string',
+          example: 'base64-encoded-signature',
+          description: 'Callback signature sent by NestPay.',
+        },
+        HASHPARAMSVAL: {
+          type: 'string',
+          example: 'concatenated-hash-params',
+          description: 'Concatenated hash params value used for validation.',
+        },
+        TransId: {
+          type: 'string',
+          example: '123456789',
+          description: 'Provider transaction identifier.',
+        },
+      },
+      example: {
+        ReturnOid: '550e8400-e29b-41d4-a716-446655440000',
+        mdStatus: '1',
+        ProcReturnCode: '00',
+        Response: 'Approved',
+        HASH: 'base64-encoded-signature',
+        HASHPARAMSVAL: 'clientIdpaymentIdamount...',
+        TransId: '123456789',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 302,
+    description:
+      'Redirects to FRONTEND_URL/payment/result with status=success, failed, or error.',
+  })
   async paymentCallback(
     @Body() payload: Record<string, string>,
     @Res() res: Response,
@@ -132,6 +205,7 @@ export class SubscriptionController {
   }
 
   @Get('dashboard')
+  @ApiBearerAuth('JWT')
   @ApiOperation({
     summary: 'Get subscription dashboard data (admin only)',
   })
@@ -143,6 +217,7 @@ export class SubscriptionController {
 
   @Get('history')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
   @ApiOperation({
     summary: 'Get subscription history (user only)',
   })
@@ -184,6 +259,7 @@ export class SubscriptionController {
   @Get('free')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT')
   @ApiOperation({
     summary: 'Get free subscriptions (admin only)',
   })
@@ -219,6 +295,7 @@ export class SubscriptionController {
 
   @Get('current')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
   @ApiOperation({
     summary: 'Get current subscription (user only)',
   })
@@ -229,6 +306,7 @@ export class SubscriptionController {
   @Patch('free/:subscriptionId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT')
   @ApiOperation({
     summary: 'Remove a free subscription (admin only)',
   })
