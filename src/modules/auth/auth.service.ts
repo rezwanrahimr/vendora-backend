@@ -469,7 +469,7 @@ export class AuthService {
         const newUser = await tx.user.create({
           data: {
             email: decodedToken.email!,
-            phone: `google-${decodedToken.uid}`,
+            phone: '',
             name: decodedToken.name || decodedToken.email?.split('@')[0],
             role: 'USER',
             status: 'ACTIVE',
