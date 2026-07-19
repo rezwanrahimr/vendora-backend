@@ -1,52 +1,43 @@
-
-
-services:
-  app:
-    image: softvence/vendora-backend:latest
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
-    # container_name: vendora-backend
-    # restart: always
-
-    ports:
-      - '5000:5000'
-
-    env_file:
-      - .env.production
-
-    depends_on:
-      db:
-        condition: service_healthy # ✅ wait for DB
-
-    networks:
-      - yasminaarsic-network
-
-  db:
-    image: postgres:15-alpine
-    container_name: yasminaarsic-db
-    restart: always
-
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: yasminaarsic
-      POSTGRES_DB: yasminaarsic-db
-
-    volumes:
-      - root_pgdata:/var/lib/postgresql/data
-
-    healthcheck: # ✅ critical addition
-      test: ['CMD-SHELL', 'pg_isready -U admin']
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-    networks:
-      - yasminaarsic-network
-
-volumes:
-  root_pgdata:
-
-networks:
-  yasminaarsic-network:
+services: 
+  app: 
+    image: softvence/vendora-backend:latest 
+    build: 
+      context: . 
+      dockerfile: Dockerfile 
+    container_name: vendora-backend 
+    restart: always 
+    ports: 
+      - "5000:5000" 
+    env_file: 
+      - .env.production 
+    depends_on: 
+      db: 
+        condition: service_healthy # ✅ wait for DB 
+    networks: 
+      - yasminaarsic-network 
+ 
+  db: 
+    image: postgres:15-alpine 
+    container_name: yasminaarsic-db 
+    restart: always 
+    environment: 
+      POSTGRES_USER: admin 
+      POSTGRES_PASSWORD: yasminaarsic 
+      POSTGRES_DB: yasminaarsic-db 
+ 
+    volumes: 
+      - root_pgdata:/var/lib/postgresql/data 
+ 
+    healthcheck: # ✅ critical addition 
+      test: ["CMD-SHELL", "pg_isready -U admin"] 
+      interval: 5s 
+      timeout: 5s 
+      retries: 5 
+ 
+    networks: 
+      - yasminaarsic-network 
+volumes: 
+  root_pgdata: 
+networks: 
+  yasminaarsic-network: 
     driver: bridge
