@@ -18,6 +18,8 @@ import {
   SubscriptionCheckoutDto,
 } from './dto/subscription.dto';
 
+type GatewayPayload = Record<string, string | string[]>;
+
 @Injectable()
 export class SubscriptionService {
   constructor(
@@ -155,11 +157,51 @@ export class SubscriptionService {
     return createHash('sha512').update(hashSource, 'utf8').digest('base64');
   }
 
+  private extractNormalizedStrings(value: unknown): string[] {
+    if (Array.isArray(value)) {
+      return value.flatMap((item) => this.extractNormalizedStrings(item));
+    }
+
+    if (typeof value !== 'string') {
+      return [];
+    }
+
+    const trimmedValue = value.trim();
+    return trimmedValue ? [trimmedValue] : [];
+  }
+
+  private getSinglePayloadValue(
+    fieldName: string,
+    ...values: unknown[]
+  ): string | undefined {
+    const candidates = values.flatMap((value) =>
+      this.extractNormalizedStrings(value),
+    );
+
+    if (candidates.length === 0) {
+      return undefined;
+    }
+
+    const uniqueCandidates = [...new Set(candidates)];
+
+    if (uniqueCandidates.length > 1) {
+      throw new BadRequestException(
+        `Conflicting ${fieldName} values received`,
+      );
+    }
+
+    return uniqueCandidates[0];
+  }
+
   private verifyCallbackHash(
-    payload: Record<string, string>,
+    payload: GatewayPayload,
     storeKey: string,
   ): { isValid: boolean; reason: string } {
-    const incomingHash = payload.HASH || payload.hash;
+    const incomingHash = this.getSinglePayloadValue(
+      'HASH',
+      payload.HASH,
+      payload.hash,
+    );
     if (!incomingHash) {
       return {
         isValid: false,
@@ -167,7 +209,11 @@ export class SubscriptionService {
       };
     }
 
-    const hashParamsVal = payload.HASHPARAMSVAL || payload.hashparamsval;
+    const hashParamsVal = this.getSinglePayloadValue(
+      'HASHPARAMSVAL',
+      payload.HASHPARAMSVAL,
+      payload.hashparamsval,
+    );
     if (!hashParamsVal) {
       return {
         isValid: true,
@@ -600,7 +646,7 @@ export class SubscriptionService {
     return formHtml;
   }
 
-  async handlePaymentCallback(payload: Record<string, string>) {
+  async handlePaymentCallback(payload: GatewayPayload) {
     console.log(
       '🚀 ~ subscription.service.ts:769 ~ SubscriptionService ~ handlePaymentCallback ~ payload:',
       payload,
@@ -616,8 +662,14 @@ export class SubscriptionService {
       throw new BadRequestException('Missing oid in callback payload');
     }
 
+    const normalizedOid = this.getSinglePayloadValue('oid', oid);
+
+    if (!normalizedOid) {
+      throw new BadRequestException('Missing oid in callback payload');
+    }
+
     const payment = await this.prisma.payment.findUnique({
-      where: { id: oid },
+      where: { id: normalizedOid },
       include: {
         Subscription: true,
       },
@@ -637,16 +689,24 @@ export class SubscriptionService {
     }
 
     const nestpay = this.getNestpayConfig();
-    const mdStatus = String(payload.mdStatus || payload.MDStatus || '');
-    const procReturnCode = String(
-      payload.ProcReturnCode || payload.procreturncode || '',
-    );
-    const response = String(payload.Response || payload.response || '');
+    const normalizedMdStatus =
+      this.getSinglePayloadValue('mdStatus', payload.mdStatus, payload.MDStatus)
+      ?? '';
+    const normalizedProcReturnCode =
+      this.getSinglePayloadValue(
+        'ProcReturnCode',
+        payload.ProcReturnCode,
+        payload.procreturncode,
+      ) ?? '';
+    const normalizedResponse =
+      this.getSinglePayloadValue('Response', payload.Response, payload.response)
+      ?? '';
 
-    const isMdStatusOk = ['1', '2', '3', '4'].includes(mdStatus);
-    const isProcReturnOk = procReturnCode === '00';
+    const isMdStatusOk = ['1', '2', '3', '4'].includes(normalizedMdStatus);
+    const isProcReturnOk = normalizedProcReturnCode === '00';
     const isResponseApproved =
-      response.length === 0 || response.toLowerCase() === 'approved';
+      normalizedResponse.length === 0 ||
+      normalizedResponse.toLowerCase() === 'approved';
 
     const hashValidation = this.verifyCallbackHash(payload, nestpay.storeKey);
     const isSuccess = isMdStatusOk && isProcReturnOk && isResponseApproved;
@@ -669,7 +729,11 @@ export class SubscriptionService {
         data: {
           status: isSuccess ? 'COMPLETED' : 'FAILED',
           providerTransactionId:
-            payload.TransId || payload.transid || payment.providerTransactionId,
+            this.getSinglePayloadValue(
+              'TransId',
+              payload.TransId,
+              payload.transid,
+            ) || payment.providerTransactionId,
           metadata: {
             ...existingMetadata,
             nestpay: {
@@ -967,9 +1031,18 @@ export class SubscriptionService {
     };
   }
 
-  async getPaymentStatus(paymentId: string) {
+  async getPaymentStatus(paymentId: string | string[]) {
+    const normalizedPaymentId = this.getSinglePayloadValue(
+      'paymentId',
+      paymentId,
+    );
+
+    if (!normalizedPaymentId) {
+      throw new BadRequestException('Payment ID is required');
+    }
+
     const payment = await this.prisma.payment.findUnique({
-      where: { id: paymentId },
+      where: { id: normalizedPaymentId },
     });
 
     if (!payment) throw new NotFoundException('Payment not found');
